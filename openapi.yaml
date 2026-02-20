@@ -1,0 +1,2850 @@
+openapi: 3.1.0
+info:
+  title: Photography Marketplace API
+  version: 1.0.0
+  description: |
+    Comprehensive API for a photography marketplace platform where a single admin can upload and sell digital products 
+    (photos, bundles, posters, typography, banners) to users who can browse, purchase, and download items in different 
+    resolutions (HD/Full HD/4K). The system supports role-based access (visitor/user/admin), shopping cart, checkout, 
+    and advertisement management.
+    
+    ## Features
+    - User authentication and authorization (JWT-based)
+    - Product management (photos, bundles, posters, typography, banners)
+    - Resolution-based pricing (HD, Full HD, 4K)
+    - Shopping cart and checkout with Razorpay integration
+    - Order management and download links
+    - Watermarked previews before purchase
+    - Blog management
+    - Advertisement system with rotation
+    - Category and tag management
+    - Search and filtering capabilities
+    - AWS S3 integration for media storage
+    
+  contact:
+    name: API Support
+    email: support@photomarket.com
+  license:
+    name: MIT
+    
+servers:
+  - url: http://localhost:5000/api/v1
+    description: Local development server
+  - url: https://api.photomarket.com/api/v1
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Products
+    description: Product management (photos, bundles, posters, typography, banners)
+  - name: Categories
+    description: Category management
+  - name: Cart
+    description: Shopping cart operations
+  - name: Orders
+    description: Order management and history
+  - name: Users
+    description: User management (admin only)
+  - name: Blogs
+    description: Blog post management
+  - name: Advertisements
+    description: Advertisement management
+  - name: Downloads
+    description: Product download endpoints
+  - name: Media
+    description: Media upload and management (AWS S3)
+  - name: Search
+    description: Search and filtering
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ==================== AUTHENTICATION ====================
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Create a new user account with email and password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 100
+                  example: John Doe
+                email:
+                  type: string
+                  format: email
+                  example: john.doe@example.com
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: SecurePass123!
+      responses:
+        '201':
+          description: User successfully registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User registered successfully
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+                      tokens:
+                        $ref: '#/components/schemas/AuthTokens'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: User with this email already exists
+                
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      description: Authenticate user with email and password, returns JWT tokens
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: john.doe@example.com
+                password:
+                  type: string
+                  format: password
+                  example: SecurePass123!
+      responses:
+        '200':
+          description: Successfully authenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Login successful
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+                      tokens:
+                        $ref: '#/components/schemas/AuthTokens'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: Invalid email or password
+                
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      description: Invalidate the refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        '200':
+          description: Successfully logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Logged out successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+          
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: Get a new access token using refresh token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      accessToken:
+                        type: string
+                        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                      refreshToken:
+                        type: string
+                        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+          
+  /auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user profile
+      description: Retrieve authenticated user's profile information
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+          
+  /auth/profile:
+    put:
+      tags:
+        - Authentication
+      summary: Update user profile
+      description: Update authenticated user's profile information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 100
+                  example: John Smith
+                email:
+                  type: string
+                  format: email
+                  example: john.smith@example.com
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Profile updated successfully
+                  data:
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+          
+  /auth/change-password:
+    post:
+      tags:
+        - Authentication
+      summary: Change password
+      description: Change user's password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - currentPassword
+                - newPassword
+              properties:
+                currentPassword:
+                  type: string
+                  format: password
+                  example: OldPass123!
+                newPassword:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: NewPass123!
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Password changed successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ==================== PRODUCTS ====================
+  /products:
+    get:
+      tags:
+        - Products
+      summary: Get all products
+      description: Retrieve a paginated list of products with optional filtering
+      security: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          example: 20
+        - name: type
+          in: query
+          description: Filter by product type
+          schema:
+            type: string
+            enum: [photo, bundle, typography, poster, banner]
+          example: photo
+        - name: category
+          in: query
+          description: Filter by category name
+          schema:
+            type: string
+          example: Wildlife
+        - name: orientation
+          in: query
+          description: Filter by orientation
+          schema:
+            type: string
+            enum: [portrait, landscape, square]
+          example: landscape
+        - name: status
+          in: query
+          description: Filter by status (admin only)
+          schema:
+            type: string
+            enum: [active, inactive]
+          example: active
+        - name: sort
+          in: query
+          description: Sort field
+          schema:
+            type: string
+            enum: [uploadDate, popularity, price]
+            default: uploadDate
+          example: popularity
+        - name: order
+          in: query
+          description: Sort order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          example: desc
+        - name: search
+          in: query
+          description: Search in title, description, and tags
+          schema:
+            type: string
+          example: mountain landscape
+      responses:
+        '200':
+          description: Products retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      products:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Product'
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+          
+    post:
+      tags:
+        - Products
+      summary: Create a new product
+      description: Create a new product (admin only)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreate'
+      responses:
+        '201':
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Product created successfully
+                  data:
+                    $ref: '#/components/schemas/Product'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+          
+  /products/{id}:
+    get:
+      tags:
+        - Products
+      summary: Get product by ID
+      description: Retrieve a single product by its ID
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "1"
+      responses:
+        '200':
+          description: Product retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Product'
+        '404':
+          $ref: '#/components/responses/NotFound'
+          
+    put:
+      tags:
+        - Products
+      summary: Update product
+      description: Update an existing product (admin only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "1"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductUpdate'
+      responses:
+        '200':
+          description: Product updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Product updated successfully
+                  data:
+                    $ref: '#/components/schemas/Product'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+          
+    delete:
+      tags:
+        - Products
+      summary: Delete product
+      description: Delete a product (admin only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "1"
+      responses:
+        '200':
+          description: Product deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Product deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==================== CATEGORIES ====================
+  /categories:
+    get:
+      tags:
+        - Categories
+      summary: Get all categories
+      description: Retrieve all product categories
+      security: []
+      parameters:
+        - name: status
+          in: query
+          description: Filter by status
+          schema:
+            type: string
+            enum: [active, inactive]
+          example: active
+      responses:
+        '200':
+          description: Categories retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+          
+    post:
+      tags:
+        - Categories
+      summary: Create a new category
+      description: Create a new category (admin only)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - slug
+              properties:
+                name:
+                  type: string
+                  example: Wildlife
+                slug:
+                  type: string
+                  pattern: '^[a-z0-9-]+$'
+                  example: wildlife
+                image:
+                  type: string
+                  format: uri
+                  example: https://s3.amazonaws.com/bucket/categories/wildlife.jpg
+                status:
+                  type: string
+                  enum: [active, inactive]
+                  default: active
+      responses:
+        '201':
+          description: Category created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Category created successfully
+                  data:
+                    $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Category already exists
+          
+  /categories/{id}:
+    get:
+      tags:
+        - Categories
+      summary: Get category by ID
+      description: Retrieve a single category by its ID
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "1"
+      responses:
+        '200':
+          description: Category retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Category'
+        '404':
+          $ref: '#/components/responses/NotFound'
+          
+    put:
+      tags:
+        - Categories
+      summary: Update category
+      description: Update an existing category (admin only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "1"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Wildlife Photography
+                slug:
+                  type: string
+                  pattern: '^[a-z0-9-]+$'
+                  example: wildlife-photography
+                image:
+                  type: string
+                  format: uri
+                status:
+                  type: string
+                  enum: [active, inactive]
+      responses:
+        '200':
+          description: Category updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Category updated successfully
+                  data:
+                    $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+          
+    delete:
+      tags:
+        - Categories
+      summary: Delete category
+      description: Delete a category (admin only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "1"
+      responses:
+        '200':
+          description: Category deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Category deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==================== CART ====================
+  /cart:
+    get:
+      tags:
+        - Cart
+      summary: Get user's cart
+      description: Retrieve the current user's shopping cart
+      responses:
+        '200':
+          description: Cart retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CartItem'
+                      total:
+                        type: number
+                        example: 1898
+                      itemCount:
+                        type: integer
+                        example: 3
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+          
+    post:
+      tags:
+        - Cart
+      summary: Add item to cart
+      description: Add a product with specific resolution to cart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - productId
+                - resolution
+              properties:
+                productId:
+                  type: string
+                  example: "1"
+                resolution:
+                  type: string
+                  enum: [HD, Full HD, 4K]
+                  example: "4K"
+      responses:
+        '200':
+          description: Item added to cart successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Item added to cart
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CartItem'
+                      total:
+                        type: number
+                        example: 1898
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+          
+    delete:
+      tags:
+        - Cart
+      summary: Clear cart
+      description: Remove all items from cart
+      responses:
+        '200':
+          description: Cart cleared successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Cart cleared successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+          
+  /cart/items/{productId}/{resolution}:
+    delete:
+      tags:
+        - Cart
+      summary: Remove item from cart
+      description: Remove a specific product with specific resolution from cart
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "1"
+        - name: resolution
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [HD, Full HD, 4K]
+          example: "4K"
+      responses:
+        '200':
+          description: Item removed from cart successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Item removed from cart
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CartItem'
+                      total:
+                        type: number
+                        example: 899
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==================== ORDERS ====================
+  /orders:
+    get:
+      tags:
+        - Orders
+      summary: Get user's orders
+      description: Retrieve authenticated user's order history
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, completed, failed]
+      responses:
+        '200':
+          description: Orders retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      orders:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Order'
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+          
+    post:
+      tags:
+        - Orders
+      summary: Create a new order
+      description: Create an order from cart items and initiate payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - paymentMethod
+              properties:
+                paymentMethod:
+                  type: string
+                  enum: [card, upi, netbanking]
+                  example: card
+                paymentDetails:
+                  type: object
+                  description: Payment method specific details
+                  properties:
+                    cardNumber:
+                      type: string
+                      example: "4111111111111111"
+                    expiryMonth:
+                      type: string
+                      example: "12"
+                    expiryYear:
+                      type: string
+                      example: "2026"
+                    cvv:
+                      type: string
+                      example: "123"
+                    upiId:
+                      type: string
+                      example: "user@upi"
+      responses:
+        '201':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Order created successfully
+                  data:
+                    type: object
+                    properties:
+                      order:
+                        $ref: '#/components/schemas/Order'
+                      paymentUrl:
+                        type: string
+                        format: uri
+                        description: Razorpay payment URL
+                        example: https://api.razorpay.com/v1/checkout/pay_abc123
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+          
+  /orders/{id}:
+    get:
+      tags:
+        - Orders
+      summary: Get order by ID
+      description: Retrieve a specific order with details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "order_abc123"
+      responses:
+        '200':
+          description: Order retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/OrderDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+          
+  /orders/{id}/verify-payment:
+    post:
+      tags:
+        - Orders
+      summary: Verify payment
+      description: Verify Razorpay payment signature and update order status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "order_abc123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - razorpayOrderId
+                - razorpayPaymentId
+                - razorpaySignature
+              properties:
+                razorpayOrderId:
+                  type: string
+                  example: order_razorpay_123
+                razorpayPaymentId:
+                  type: string
+                  example: pay_razorpay_456
+                razorpaySignature:
+                  type: string
+                  example: abc123def456signature
+      responses:
+        '200':
+          description: Payment verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Payment verified successfully
+                  data:
+                    $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+          
+  /admin/orders:
+    get:
+      tags:
+        - Orders
+      summary: Get all orders (Admin)
+      description: Retrieve all orders with filtering options (admin only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, completed, failed]
+        - name: userId
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+          example: "2026-01-01"
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+          example: "2026-02-20"
+      responses:
+        '200':
+          description: Orders retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      orders:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/OrderAdmin'
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+                      stats:
+                        type: object
+                        properties:
+                          totalRevenue:
+                            type: number
+                            example: 125600
+                          totalOrders:
+                            type: integer
+                            example: 156
+                          completedOrders:
+                            type: integer
+                            example: 142
+                          pendingOrders:
+                            type: integer
+                            example: 12
+                          failedOrders:
+                            type: integer
+                            example: 2
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ==================== USERS (ADMIN) ====================
+  /admin/users:
+    get:
+      tags:
+        - Users
+      summary: Get all users (Admin)
+      description: Retrieve all users (admin only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [user, admin]
+        - name: search
+          in: query
+          description: Search by name or email
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      users:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UserAdmin'
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+          
+  /admin/users/{id}:
+    get:
+      tags:
+        - Users
+      summary: Get user by ID (Admin)
+      description: Retrieve a specific user with full details (admin only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "1"
+      responses:
+        '200':
+          description: User retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/UserAdmin'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+          
+    put:
+      tags:
+        - Users
+      summary: Update user (Admin)
+      description: Update user information (admin only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "1"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                role:
+                  type: string
+                  enum: [user, admin]
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User updated successfully
+                  data:
+                    $ref: '#/components/schemas/UserAdmin'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+          
+    delete:
+      tags:
+        - Users
+      summary: Delete user (Admin)
+      description: Delete a user account (admin only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "1"
+      responses:
+        '200':
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==================== BLOGS ====================
+  /blogs:
+    get:
+      tags:
+        - Blogs
+      summary: Get all blog posts
+      description: Retrieve all blog posts with pagination
+      security: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: tag
+          in: query
+          description: Filter by tag
+          schema:
+            type: string
+        - name: search
+          in: query
+          description: Search in title and excerpt
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Blog posts retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      blogs:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Blog'
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+          
+    post:
+      tags:
+        - Blogs
+      summary: Create a new blog post
+      description: Create a new blog post (admin only)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - excerpt
+                - content
+                - image
+              properties:
+                title:
+                  type: string
+                  example: "10 Tips for Better Wildlife Photography"
+                excerpt:
+                  type: string
+                  example: "Master the art of wildlife photography with these essential tips"
+                content:
+                  type: string
+                  example: "Wildlife photography is one of the most challenging yet rewarding genres..."
+                image:
+                  type: string
+                  format: uri
+                  example: "https://s3.amazonaws.com/bucket/blogs/wildlife-tips.jpg"
+                tags:
+                  type: array
+                  items:
+                    type: string
+                  example: ["wildlife", "tips", "photography"]
+      responses:
+        '201':
+          description: Blog post created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Blog post created successfully
+                  data:
+                    $ref: '#/components/schemas/Blog'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+          
+  /blogs/{id}:
+    get:
+      tags:
+        - Blogs
+      summary: Get blog post by ID
+      description: Retrieve a single blog post
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "1"
+      responses:
+        '200':
+          description: Blog post retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Blog'
+        '404':
+          $ref: '#/components/responses/NotFound'
+          
+    put:
+      tags:
+        - Blogs
+      summary: Update blog post
+      description: Update an existing blog post (admin only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "1"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                excerpt:
+                  type: string
+                content:
+                  type: string
+                image:
+                  type: string
+                  format: uri
+                tags:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Blog post updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Blog post updated successfully
+                  data:
+                    $ref: '#/components/schemas/Blog'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+          
+    delete:
+      tags:
+        - Blogs
+      summary: Delete blog post
+      description: Delete a blog post (admin only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "1"
+      responses:
+        '200':
+          description: Blog post deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Blog post deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==================== ADVERTISEMENTS ====================
+  /advertisements:
+    get:
+      tags:
+        - Advertisements
+      summary: Get all advertisements
+      description: Retrieve active advertisements for a specific position
+      security: []
+      parameters:
+        - name: position
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [home-sidebar, explore, blog]
+          example: home-sidebar
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive]
+            default: active
+      responses:
+        '200':
+          description: Advertisements retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Advertisement'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+          
+  /admin/advertisements:
+    get:
+      tags:
+        - Advertisements
+      summary: Get all advertisements (Admin)
+      description: Retrieve all advertisements with filtering (admin only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: position
+          in: query
+          schema:
+            type: string
+            enum: [home-sidebar, explore, blog]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive]
+      responses:
+        '200':
+          description: Advertisements retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Advertisement'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+          
+    post:
+      tags:
+        - Advertisements
+      summary: Create a new advertisement
+      description: Create a new advertisement (admin only)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - image
+                - url
+                - position
+              properties:
+                image:
+                  type: string
+                  format: uri
+                  example: "https://s3.amazonaws.com/bucket/ads/promo-1.jpg"
+                url:
+                  type: string
+                  format: uri
+                  example: "/explore?plan=monthly"
+                position:
+                  type: string
+                  enum: [home-sidebar, explore, blog]
+                  example: home-sidebar
+                status:
+                  type: string
+                  enum: [active, inactive]
+                  default: active
+      responses:
+        '201':
+          description: Advertisement created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Advertisement created successfully
+                  data:
+                    $ref: '#/components/schemas/Advertisement'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+          
+  /admin/advertisements/{id}:
+    put:
+      tags:
+        - Advertisements
+      summary: Update advertisement
+      description: Update an existing advertisement (admin only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "1"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: uri
+                url:
+                  type: string
+                  format: uri
+                position:
+                  type: string
+                  enum: [home-sidebar, explore, blog]
+                status:
+                  type: string
+                  enum: [active, inactive]
+      responses:
+        '200':
+          description: Advertisement updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Advertisement updated successfully
+                  data:
+                    $ref: '#/components/schemas/Advertisement'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+          
+    delete:
+      tags:
+        - Advertisements
+      summary: Delete advertisement
+      description: Delete an advertisement (admin only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "1"
+      responses:
+        '200':
+          description: Advertisement deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Advertisement deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==================== DOWNLOADS ====================
+  /downloads/preview/{productId}:
+    get:
+      tags:
+        - Downloads
+      summary: Get watermarked preview
+      description: Download watermarked preview image (no authentication required)
+      security: []
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "1"
+      responses:
+        '200':
+          description: Watermarked preview image
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NotFound'
+          
+  /downloads/product/{orderId}/{productId}/{resolution}:
+    get:
+      tags:
+        - Downloads
+      summary: Download purchased product
+      description: Download full resolution product after purchase (authenticated users only)
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "order_abc123"
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "1"
+        - name: resolution
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [HD, Full HD, 4K]
+          example: "4K"
+      responses:
+        '200':
+          description: Product file download
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            application/zip:
+              schema:
+                type: string
+                format: binary
+                description: For bundles containing multiple files
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Not authorized to download this product
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: You have not purchased this product
+        '404':
+          $ref: '#/components/responses/NotFound'
+          
+  /downloads/generate-link:
+    post:
+      tags:
+        - Downloads
+      summary: Generate temporary download link
+      description: Generate a temporary signed download link for a purchased product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - orderId
+                - productId
+                - resolution
+              properties:
+                orderId:
+                  type: string
+                  example: "order_abc123"
+                productId:
+                  type: string
+                  example: "1"
+                resolution:
+                  type: string
+                  enum: [HD, Full HD, 4K]
+                  example: "4K"
+      responses:
+        '200':
+          description: Download link generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      downloadUrl:
+                        type: string
+                        format: uri
+                        example: "https://s3.amazonaws.com/bucket/downloads/temp_link_xyz?expires=1234567890"
+                      expiresAt:
+                        type: string
+                        format: date-time
+                        example: "2026-02-20T15:30:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Not authorized to download this product
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==================== MEDIA (AWS S3) ====================
+  /media/upload:
+    post:
+      tags:
+        - Media
+      summary: Upload media file
+      description: Upload a media file to AWS S3 (admin only)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - type
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The file to upload
+                type:
+                  type: string
+                  enum: [product, category, blog, advertisement, watermarked]
+                  example: product
+                  description: Type of media being uploaded
+      responses:
+        '200':
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: File uploaded successfully
+                  data:
+                    type: object
+                    properties:
+                      url:
+                        type: string
+                        format: uri
+                        example: "https://s3.amazonaws.com/bucket/products/image_123.jpg"
+                      key:
+                        type: string
+                        example: "products/image_123.jpg"
+                      size:
+                        type: integer
+                        example: 2048576
+                      mimeType:
+                        type: string
+                        example: "image/jpeg"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          description: File too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: File size exceeds maximum limit of 50MB
+                
+  /media/delete:
+    delete:
+      tags:
+        - Media
+      summary: Delete media file
+      description: Delete a media file from AWS S3 (admin only)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - key
+              properties:
+                key:
+                  type: string
+                  example: "products/image_123.jpg"
+      responses:
+        '200':
+          description: File deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: File deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==================== SEARCH ====================
+  /search:
+    get:
+      tags:
+        - Search
+      summary: Global search
+      description: Search across products, blogs, and categories
+      security: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+          example: "wildlife photography"
+        - name: type
+          in: query
+          description: Limit search to specific type
+          schema:
+            type: string
+            enum: [products, blogs, categories, all]
+            default: all
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      products:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Product'
+                      blogs:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Blog'
+                      categories:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Category'
+                      totalResults:
+                        type: integer
+                        example: 42
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login or register endpoint
+      
+  schemas:
+    # ==================== USER SCHEMAS ====================
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "1"
+        name:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          example: "john.doe@example.com"
+        role:
+          type: string
+          enum: [user, admin]
+          example: "user"
+        joinDate:
+          type: string
+          format: date-time
+          example: "2025-12-15T00:00:00Z"
+          
+    UserAdmin:
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          properties:
+            totalOrders:
+              type: integer
+              example: 5
+            totalSpent:
+              type: number
+              example: 4599
+            lastLoginAt:
+              type: string
+              format: date-time
+              example: "2026-02-20T10:30:00Z"
+            createdAt:
+              type: string
+              format: date-time
+              example: "2025-12-15T00:00:00Z"
+            updatedAt:
+              type: string
+              format: date-time
+              example: "2026-02-20T10:30:00Z"
+              
+    AuthTokens:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          description: JWT access token (expires in 1 hour)
+        refreshToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          description: JWT refresh token (expires in 7 days)
+        expiresIn:
+          type: integer
+          example: 3600
+          description: Access token expiration time in seconds
+          
+    # ==================== PRODUCT SCHEMAS ====================
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "1"
+        title:
+          type: string
+          example: "Majestic Lion Portrait"
+        description:
+          type: string
+          example: "A stunning close-up portrait of a male lion in golden hour light"
+        type:
+          type: string
+          enum: [photo, bundle, typography, poster, banner]
+          example: "photo"
+        categories:
+          type: array
+          items:
+            type: string
+          example: ["Wildlife", "Nature"]
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["lion", "wildlife", "africa", "golden hour"]
+        previewImage:
+          type: string
+          format: uri
+          example: "https://s3.amazonaws.com/bucket/previews/lion_watermarked.jpg"
+          description: Watermarked preview image
+        bundleImages:
+          type: array
+          items:
+            type: string
+            format: uri
+          example: ["https://s3.amazonaws.com/bucket/previews/img1.jpg"]
+          description: Array of preview images for bundles
+        orientation:
+          type: string
+          enum: [portrait, landscape, square]
+          example: "portrait"
+        uploadDate:
+          type: string
+          format: date
+          example: "2026-02-15"
+        popularity:
+          type: integer
+          example: 950
+          description: Popularity score based on views and purchases
+        prices:
+          type: object
+          properties:
+            HD:
+              type: number
+              example: 299
+            "Full HD":
+              type: number
+              example: 599
+            "4K":
+              type: number
+              example: 999
+        status:
+          type: string
+          enum: [active, inactive]
+          example: "active"
+        filesCount:
+          type: integer
+          example: 1
+          description: Number of files in bundle (for bundle type)
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-02-15T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-02-15T12:00:00Z"
+          
+    ProductCreate:
+      type: object
+      required:
+        - title
+        - description
+        - type
+        - categories
+        - previewImage
+        - orientation
+        - prices
+      properties:
+        title:
+          type: string
+          minLength: 5
+          maxLength: 200
+          example: "Majestic Lion Portrait"
+        description:
+          type: string
+          minLength: 20
+          maxLength: 1000
+          example: "A stunning close-up portrait of a male lion"
+        type:
+          type: string
+          enum: [photo, bundle, typography, poster, banner]
+          example: "photo"
+        categories:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          example: ["Wildlife", "Nature"]
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["lion", "wildlife", "africa"]
+        previewImage:
+          type: string
+          format: uri
+          example: "https://s3.amazonaws.com/bucket/previews/lion.jpg"
+        bundleImages:
+          type: array
+          items:
+            type: string
+            format: uri
+        orientation:
+          type: string
+          enum: [portrait, landscape, square]
+          example: "portrait"
+        prices:
+          type: object
+          required:
+            - HD
+            - Full HD
+            - 4K
+          properties:
+            HD:
+              type: number
+              minimum: 1
+              example: 299
+            "Full HD":
+              type: number
+              minimum: 1
+              example: 599
+            "4K":
+              type: number
+              minimum: 1
+              example: 999
+        status:
+          type: string
+          enum: [active, inactive]
+          default: active
+        filesCount:
+          type: integer
+          minimum: 1
+          example: 1
+          
+    ProductUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 5
+          maxLength: 200
+        description:
+          type: string
+          minLength: 20
+          maxLength: 1000
+        type:
+          type: string
+          enum: [photo, bundle, typography, poster, banner]
+        categories:
+          type: array
+          items:
+            type: string
+        tags:
+          type: array
+          items:
+            type: string
+        previewImage:
+          type: string
+          format: uri
+        bundleImages:
+          type: array
+          items:
+            type: string
+            format: uri
+        orientation:
+          type: string
+          enum: [portrait, landscape, square]
+        prices:
+          type: object
+          properties:
+            HD:
+              type: number
+              minimum: 1
+            "Full HD":
+              type: number
+              minimum: 1
+            "4K":
+              type: number
+              minimum: 1
+        status:
+          type: string
+          enum: [active, inactive]
+        filesCount:
+          type: integer
+          minimum: 1
+          
+    # ==================== CATEGORY SCHEMAS ====================
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "1"
+        name:
+          type: string
+          example: "Wildlife"
+        slug:
+          type: string
+          example: "wildlife"
+        image:
+          type: string
+          format: uri
+          example: "https://s3.amazonaws.com/bucket/categories/wildlife.jpg"
+        productCount:
+          type: integer
+          example: 145
+        status:
+          type: string
+          enum: [active, inactive]
+          example: "active"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-02-01T00:00:00Z"
+          
+    # ==================== CART SCHEMAS ====================
+    CartItem:
+      type: object
+      properties:
+        productId:
+          type: string
+          example: "1"
+        title:
+          type: string
+          example: "Majestic Lion Portrait"
+        previewImage:
+          type: string
+          format: uri
+          example: "https://s3.amazonaws.com/bucket/previews/lion.jpg"
+        resolution:
+          type: string
+          enum: [HD, Full HD, 4K]
+          example: "4K"
+        price:
+          type: number
+          example: 999
+          
+    # ==================== ORDER SCHEMAS ====================
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "order_abc123"
+        userId:
+          type: string
+          example: "1"
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: string
+                example: "1"
+              resolution:
+                type: string
+                enum: [HD, Full HD, 4K]
+                example: "4K"
+              price:
+                type: number
+                example: 999
+        total:
+          type: number
+          example: 1898
+        status:
+          type: string
+          enum: [pending, completed, failed]
+          example: "completed"
+        paymentId:
+          type: string
+          example: "pay_razorpay_123"
+        paymentMethod:
+          type: string
+          enum: [card, upi, netbanking]
+          example: "card"
+        date:
+          type: string
+          format: date-time
+          example: "2026-02-20T10:30:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-02-20T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-02-20T10:35:00Z"
+          
+    OrderDetail:
+      allOf:
+        - $ref: '#/components/schemas/Order'
+        - type: object
+          properties:
+            user:
+              type: object
+              properties:
+                id:
+                  type: string
+                  example: "1"
+                name:
+                  type: string
+                  example: "John Doe"
+                email:
+                  type: string
+                  example: "john.doe@example.com"
+            itemsDetail:
+              type: array
+              items:
+                type: object
+                properties:
+                  product:
+                    $ref: '#/components/schemas/Product'
+                  resolution:
+                    type: string
+                    enum: [HD, Full HD, 4K]
+                    example: "4K"
+                  price:
+                    type: number
+                    example: 999
+                  downloadUrl:
+                    type: string
+                    format: uri
+                    example: "/downloads/product/order_abc123/1/4K"
+                    
+    OrderAdmin:
+      allOf:
+        - $ref: '#/components/schemas/Order'
+        - type: object
+          properties:
+            user:
+              type: object
+              properties:
+                id:
+                  type: string
+                  example: "1"
+                name:
+                  type: string
+                  example: "John Doe"
+                email:
+                  type: string
+                  example: "john.doe@example.com"
+                  
+    # ==================== BLOG SCHEMAS ====================
+    Blog:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "1"
+        title:
+          type: string
+          example: "10 Tips for Better Wildlife Photography"
+        excerpt:
+          type: string
+          example: "Master the art of wildlife photography with these essential tips"
+        content:
+          type: string
+          example: "Wildlife photography is one of the most challenging yet rewarding genres..."
+        image:
+          type: string
+          format: uri
+          example: "https://s3.amazonaws.com/bucket/blogs/wildlife-tips.jpg"
+        author:
+          type: string
+          example: "Sarah Johnson"
+        date:
+          type: string
+          format: date
+          example: "2026-02-10"
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["wildlife", "tips", "photography"]
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-02-10T00:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-02-10T00:00:00Z"
+          
+    # ==================== ADVERTISEMENT SCHEMAS ====================
+    Advertisement:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "1"
+        image:
+          type: string
+          format: uri
+          example: "https://s3.amazonaws.com/bucket/ads/promo-1.jpg"
+        url:
+          type: string
+          example: "/explore?plan=monthly"
+        status:
+          type: string
+          enum: [active, inactive]
+          example: "active"
+        position:
+          type: string
+          enum: [home-sidebar, explore, blog]
+          example: "home-sidebar"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-01-01T00:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-02-01T00:00:00Z"
+          
+    # ==================== COMMON SCHEMAS ====================
+    Pagination:
+      type: object
+      properties:
+        currentPage:
+          type: integer
+          example: 1
+        totalPages:
+          type: integer
+          example: 5
+        totalItems:
+          type: integer
+          example: 98
+        itemsPerPage:
+          type: integer
+          example: 20
+        hasNextPage:
+          type: boolean
+          example: true
+        hasPrevPage:
+          type: boolean
+          example: false
+          
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "An error occurred"
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: "email"
+              message:
+                type: string
+                example: "Invalid email format"
+                
+  responses:
+    BadRequest:
+      description: Bad request - Invalid input data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: Validation failed
+            errors:
+              - field: email
+                message: Invalid email format
+              - field: password
+                message: Password must be at least 8 characters
+                
+    Unauthorized:
+      description: Unauthorized - Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: Authentication required. Please login.
+            
+    Forbidden:
+      description: Forbidden - Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: You do not have permission to perform this action
+            
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: Resource not found
