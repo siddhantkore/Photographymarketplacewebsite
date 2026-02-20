@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router';
-import { products, categories, ProductType, Orientation } from '../lib/mock-data';
+import { productsApi, categoriesApi } from '../services/api';
 import { ProductCard } from '../components/product-card';
+import { InlineAdCard } from '../components/inline-ad-card';
 import { Button } from '../components/ui/button';
 import { Label } from '../components/ui/label';
 import { Checkbox } from '../components/ui/checkbox';
@@ -13,90 +14,125 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
-import { Filter, X } from 'lucide-react';
+import { Filter, X, Loader2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../components/ui/sheet';
+import { SideRailAd } from '../components/google-ads';
 
 export function ExplorePage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedTypes, setSelectedTypes] = useState<ProductType[]>([]);
-  const [selectedOrientations, setSelectedOrientations] = useState<Orientation[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedOrientations, setSelectedOrientations] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
   const [sortBy, setSortBy] = useState<string>('newest');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  // Filter and sort products
-  const filteredProducts = useMemo(() => {
-    let result = [...products];
+  // Load categories
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const response: any = await categoriesApi.getAll({ status: 'active' });
+        if (response.success) {
+          setCategories(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to load categories:', error);
+      }
+    };
 
-    // Search filter
-    const searchQuery = searchParams.get('search');
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.title.toLowerCase().includes(query) ||
-          p.description.toLowerCase().includes(query) ||
-          p.tags.some((tag) => tag.toLowerCase().includes(query))
-      );
-    }
+    loadCategories();
+  }, []);
 
-    // Category filter
-    const categoryParam = searchParams.get('category');
-    const activeCategories = categoryParam ? [categoryParam] : selectedCategories;
-    if (activeCategories.length > 0) {
-      result = result.filter((p) =>
-        p.categories.some((c) => activeCategories.includes(c.toLowerCase()))
-      );
-    }
+  // Load products
+  useEffect(() => {
+    const loadProducts = async () => {
+      setLoading(true);
+      try {
+        const params: any = {
+          page: currentPage,
+          limit: 20,
+        };
 
-    // Type filter
-    if (selectedTypes.length > 0) {
-      result = result.filter((p) => selectedTypes.includes(p.type));
-    }
+        // Search
+        const searchQuery = searchParams.get('search');
+        if (searchQuery) params.search = searchQuery;
 
-    // Orientation filter
-    if (selectedOrientations.length > 0) {
-      result = result.filter((p) => selectedOrientations.includes(p.orientation));
-    }
+        // Category
+        const categoryParam = searchParams.get('category');
+        const activeCategories = categoryParam ? [categoryParam] : selectedCategories;
+        if (activeCategories.length > 0) {
+          params.category = activeCategories[0]; // Backend supports single category for now
+        }
 
-    // Price filter
-    result = result.filter((p) => p.prices.HD >= priceRange[0] && p.prices.HD <= priceRange[1]);
+        // Type
+        if (selectedTypes.length > 0) {
+          params.type = selectedTypes[0];
+        }
 
-    // Sort
-    switch (sortBy) {
-      case 'newest':
-        result.sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime());
-        break;
-      case 'price-low':
-        result.sort((a, b) => a.prices.HD - b.prices.HD);
-        break;
-      case 'price-high':
-        result.sort((a, b) => b.prices.HD - a.prices.HD);
-        break;
-      case 'popular':
-        result.sort((a, b) => b.popularity - a.popularity);
-        break;
-    }
+        // Orientation
+        if (selectedOrientations.length > 0) {
+          params.orientation = selectedOrientations[0];
+        }
 
-    return result;
-  }, [searchParams, selectedCategories, selectedTypes, selectedOrientations, priceRange, sortBy]);
+        // Sort
+        const sortMapping: Record<string, { sort: string; order: string }> = {
+          newest: { sort: 'uploadDate', order: 'desc' },
+          oldest: { sort: 'uploadDate', order: 'asc' },
+          popular: { sort: 'popularity', order: 'desc' },
+          'price-low': { sort: 'priceHD', order: 'asc' },
+          'price-high': { sort: 'price4K', order: 'desc' },
+        };
 
-  const toggleCategory = (category: string) => {
+        const sortConfig = sortMapping[sortBy] || sortMapping.newest;
+        params.sort = sortConfig.sort;
+        params.order = sortConfig.order;
+
+        const response: any = await productsApi.getAll(params);
+        
+        if (response.success && response.data) {
+          setProducts(response.data.products);
+          setTotalPages(response.data.pagination.totalPages);
+        }
+      } catch (error) {
+        console.error('Failed to load products:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, [searchParams, selectedCategories, selectedTypes, selectedOrientations, sortBy, currentPage]);
+
+  // Filter products by price (client-side for now)
+  const filteredProducts = products.filter((product) => {
+    const minPrice = Math.min(product.prices.HD, product.prices['Full HD'], product.prices['4K']);
+    const maxPrice = Math.max(product.prices.HD, product.prices['Full HD'], product.prices['4K']);
+    return minPrice >= priceRange[0] && maxPrice <= priceRange[1];
+  });
+
+  const handleCategoryToggle = (category: string) => {
     setSelectedCategories((prev) =>
       prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
     );
+    setCurrentPage(1);
   };
 
-  const toggleType = (type: ProductType) => {
+  const handleTypeToggle = (type: string) => {
     setSelectedTypes((prev) =>
       prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
     );
+    setCurrentPage(1);
   };
 
-  const toggleOrientation = (orientation: Orientation) => {
+  const handleOrientationToggle = (orientation: string) => {
     setSelectedOrientations((prev) =>
       prev.includes(orientation) ? prev.filter((o) => o !== orientation) : [...prev, orientation]
     );
+    setCurrentPage(1);
   };
 
   const clearFilters = () => {
@@ -104,23 +140,30 @@ export function ExplorePage() {
     setSelectedTypes([]);
     setSelectedOrientations([]);
     setPriceRange([0, 5000]);
-    setSearchParams({});
+    setCurrentPage(1);
   };
 
-  const FilterPanel = () => (
+  const hasActiveFilters =
+    selectedCategories.length > 0 ||
+    selectedTypes.length > 0 ||
+    selectedOrientations.length > 0 ||
+    priceRange[0] !== 0 ||
+    priceRange[1] !== 5000;
+
+  const renderFilters = () => (
     <div className="space-y-6">
       {/* Categories */}
       <div>
-        <h3 className="font-semibold text-gray-900 mb-3">Categories</h3>
+        <h3 className="font-semibold mb-3">Categories</h3>
         <div className="space-y-2">
           {categories.map((category) => (
-            <div key={category.id} className="flex items-center gap-2">
+            <div key={category.id} className="flex items-center space-x-2">
               <Checkbox
-                id={`cat-${category.id}`}
-                checked={selectedCategories.includes(category.name.toLowerCase())}
-                onCheckedChange={() => toggleCategory(category.name.toLowerCase())}
+                id={`category-${category.id}`}
+                checked={selectedCategories.includes(category.slug)}
+                onCheckedChange={() => handleCategoryToggle(category.slug)}
               />
-              <Label htmlFor={`cat-${category.id}`} className="text-sm cursor-pointer">
+              <Label htmlFor={`category-${category.id}`} className="cursor-pointer">
                 {category.name} ({category.productCount})
               </Label>
             </div>
@@ -130,16 +173,16 @@ export function ExplorePage() {
 
       {/* Product Type */}
       <div>
-        <h3 className="font-semibold text-gray-900 mb-3">Product Type</h3>
+        <h3 className="font-semibold mb-3">Type</h3>
         <div className="space-y-2">
-          {(['photo', 'bundle', 'typography', 'poster', 'banner'] as ProductType[]).map((type) => (
-            <div key={type} className="flex items-center gap-2">
+          {['photo', 'bundle', 'typography', 'poster', 'banner'].map((type) => (
+            <div key={type} className="flex items-center space-x-2">
               <Checkbox
                 id={`type-${type}`}
                 checked={selectedTypes.includes(type)}
-                onCheckedChange={() => toggleType(type)}
+                onCheckedChange={() => handleTypeToggle(type)}
               />
-              <Label htmlFor={`type-${type}`} className="text-sm cursor-pointer capitalize">
+              <Label htmlFor={`type-${type}`} className="cursor-pointer capitalize">
                 {type}
               </Label>
             </div>
@@ -149,16 +192,16 @@ export function ExplorePage() {
 
       {/* Orientation */}
       <div>
-        <h3 className="font-semibold text-gray-900 mb-3">Orientation</h3>
+        <h3 className="font-semibold mb-3">Orientation</h3>
         <div className="space-y-2">
-          {(['portrait', 'landscape', 'square'] as Orientation[]).map((orientation) => (
-            <div key={orientation} className="flex items-center gap-2">
+          {['portrait', 'landscape', 'square'].map((orientation) => (
+            <div key={orientation} className="flex items-center space-x-2">
               <Checkbox
-                id={`orient-${orientation}`}
+                id={`orientation-${orientation}`}
                 checked={selectedOrientations.includes(orientation)}
-                onCheckedChange={() => toggleOrientation(orientation)}
+                onCheckedChange={() => handleOrientationToggle(orientation)}
               />
-              <Label htmlFor={`orient-${orientation}`} className="text-sm cursor-pointer capitalize">
+              <Label htmlFor={`orientation-${orientation}`} className="cursor-pointer capitalize">
                 {orientation}
               </Label>
             </div>
@@ -168,7 +211,7 @@ export function ExplorePage() {
 
       {/* Price Range */}
       <div>
-        <h3 className="font-semibold text-gray-900 mb-3">
+        <h3 className="font-semibold mb-3">
           Price Range: ₹{priceRange[0]} - ₹{priceRange[1]}
         </h3>
         <Slider
@@ -180,90 +223,142 @@ export function ExplorePage() {
           className="mt-2"
         />
       </div>
-
-      {/* Clear Filters */}
-      <Button variant="outline" onClick={clearFilters} className="w-full gap-2">
-        <X className="w-4 h-4" />
-        Clear All Filters
-      </Button>
     </div>
   );
+
+  // Insert ads into product grid every 6 products
+  const renderProductGrid = () => {
+    const items: JSX.Element[] = [];
+    
+    filteredProducts.forEach((product, index) => {
+      // Add inline ad after every 6th product
+      if (index > 0 && index % 6 === 0) {
+        items.push(
+          <InlineAdCard key={`ad-${index}`} position={index} />
+        );
+      }
+
+      items.push(
+        <ProductCard key={product.id} product={product} />
+      );
+    });
+
+    return items;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Explore Photography</h1>
-          <p className="text-gray-600">Discover amazing photos and creative assets</p>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Explore Products</h1>
+            <p className="text-gray-600 mt-1">
+              {loading ? 'Loading...' : `${filteredProducts.length} products found`}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {/* Sort */}
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest First</SelectItem>
+                <SelectItem value="oldest">Oldest First</SelectItem>
+                <SelectItem value="popular">Most Popular</SelectItem>
+                <SelectItem value="price-low">Price: Low to High</SelectItem>
+                <SelectItem value="price-high">Price: High to Low</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Mobile Filter */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" className="lg:hidden">
+                  <Filter className="w-4 h-4 mr-2" />
+                  Filters
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-80 overflow-y-auto">
+                <SheetHeader>
+                  <SheetTitle>Filters</SheetTitle>
+                </SheetHeader>
+                <div className="mt-6">{renderFilters()}</div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
 
         <div className="flex gap-8">
-          {/* Desktop Filters */}
+          {/* Sidebar Filters - Desktop */}
           <aside className="hidden lg:block w-64 flex-shrink-0">
-            <div className="sticky top-20 bg-white p-6 rounded-lg shadow-sm">
-              <FilterPanel />
+            <div className="sticky top-20">
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-bold text-lg">Filters</h2>
+                  {hasActiveFilters && (
+                    <Button variant="ghost" size="sm" onClick={clearFilters}>
+                      <X className="w-4 h-4 mr-1" />
+                      Clear
+                    </Button>
+                  )}
+                </div>
+                {renderFilters()}
+              </div>
             </div>
           </aside>
 
-          {/* Main Content */}
-          <div className="flex-1">
-            {/* Toolbar */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-4">
-                {/* Mobile Filter Button */}
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" size="sm" className="lg:hidden gap-2">
-                      <Filter className="w-4 h-4" />
-                      Filters
+          {/* Product Grid */}
+          <main className="flex-1">
+            {loading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              </div>
+            ) : filteredProducts.length > 0 ? (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {renderProductGrid()}
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="mt-8 flex items-center justify-center gap-2">
+                    <Button
+                      variant="outline"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage((p) => p - 1)}
+                    >
+                      Previous
                     </Button>
-                  </SheetTrigger>
-                  <SheetContent side="left" className="w-80 overflow-y-auto">
-                    <SheetHeader>
-                      <SheetTitle>Filters</SheetTitle>
-                    </SheetHeader>
-                    <div className="mt-6">
-                      <FilterPanel />
-                    </div>
-                  </SheetContent>
-                </Sheet>
-
-                <p className="text-sm text-gray-600">
-                  {filteredProducts.length} {filteredProducts.length === 1 ? 'result' : 'results'}
-                </p>
-              </div>
-
-              {/* Sort */}
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Newest</SelectItem>
-                  <SelectItem value="popular">Most Popular</SelectItem>
-                  <SelectItem value="price-low">Price: Low to High</SelectItem>
-                  <SelectItem value="price-high">Price: High to Low</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Products Grid */}
-            {filteredProducts.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
+                    <span className="text-sm text-gray-600">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage((p) => p + 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
+              </>
             ) : (
-              <div className="text-center py-12">
-                <p className="text-gray-500 text-lg">No products found</p>
-                <Button variant="outline" onClick={clearFilters} className="mt-4">
-                  Clear Filters
+              <div className="text-center py-20">
+                <p className="text-gray-600 text-lg">No products found</p>
+                <Button variant="link" onClick={clearFilters} className="mt-2">
+                  Clear all filters
                 </Button>
               </div>
             )}
-          </div>
+          </main>
+
+          {/* Google Side Rail Ad */}
+          <aside className="hidden xl:block w-40 flex-shrink-0">
+            <SideRailAd />
+          </aside>
         </div>
       </div>
     </div>

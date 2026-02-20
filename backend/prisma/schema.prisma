@@ -1,0 +1,224 @@
+// Prisma schema for Photography Marketplace
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum ProductType {
+  PHOTO
+  BUNDLE
+  TYPOGRAPHY
+  POSTER
+  BANNER
+}
+
+enum Resolution {
+  HD
+  FULL_HD
+  FOUR_K
+}
+
+enum Orientation {
+  PORTRAIT
+  LANDSCAPE
+  SQUARE
+}
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+}
+
+enum AdPosition {
+  HOME_SIDEBAR
+  EXPLORE
+  BLOG
+  PRODUCT_GRID
+  SIDE_RAIL
+  ANCHOR
+  VIGNETTE
+}
+
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  password      String
+  role          UserRole  @default(USER)
+  joinDate      DateTime  @default(now())
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  orders        Order[]
+  cartItems     CartItem[]
+  refreshTokens RefreshToken[]
+  
+  @@index([email])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+  @@index([token])
+}
+
+model Product {
+  id            String       @id @default(uuid())
+  title         String
+  description   String       @db.Text
+  type          ProductType
+  categories    String[]
+  tags          String[]
+  previewImage  String
+  bundleImages  String[]
+  originalFiles String[]     // S3 keys for original files
+  orientation   Orientation
+  uploadDate    DateTime     @default(now())
+  popularity    Int          @default(0)
+  priceHD       Float
+  priceFullHD   Float
+  price4K       Float
+  status        Status       @default(ACTIVE)
+  filesCount    Int          @default(1)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  orderItems    OrderItem[]
+  cartItems     CartItem[]
+  
+  @@index([type])
+  @@index([status])
+  @@index([popularity])
+}
+
+model Category {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  slug         String   @unique
+  image        String
+  productCount Int      @default(0)
+  status       Status   @default(ACTIVE)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([slug])
+  @@index([status])
+}
+
+model CartItem {
+  id         String     @id @default(uuid())
+  userId     String
+  productId  String
+  resolution Resolution
+  price      Float
+  createdAt  DateTime   @default(now())
+  
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, productId, resolution])
+  @@index([userId])
+}
+
+model Order {
+  id            String      @id @default(uuid())
+  userId        String
+  total         Float
+  status        OrderStatus @default(PENDING)
+  paymentId     String?
+  paymentMethod String?
+  razorpayOrderId     String?
+  razorpayPaymentId   String?
+  razorpaySignature   String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  user          User        @relation(fields: [userId], references: [id])
+  items         OrderItem[]
+  
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id         String     @id @default(uuid())
+  orderId    String
+  productId  String
+  resolution Resolution
+  price      Float
+  downloadUrl String?
+  createdAt  DateTime   @default(now())
+  
+  order      Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product    Product    @relation(fields: [productId], references: [id])
+  
+  @@index([orderId])
+}
+
+model Blog {
+  id        String   @id @default(uuid())
+  title     String
+  excerpt   String   @db.Text
+  content   String   @db.Text
+  image     String
+  author    String
+  tags      String[]
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([date])
+}
+
+model Advertisement {
+  id        String     @id @default(uuid())
+  image     String
+  url       String
+  status    Status     @default(ACTIVE)
+  position  AdPosition
+  priority  Int        @default(0)  // Higher priority shows first
+  gridIndex Int?       // For PRODUCT_GRID, which position (e.g., after 6th product)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  
+  @@index([position, status])
+  @@index([priority])
+}
+
+model GoogleAdSettings {
+  id              String   @id @default(uuid())
+  adClientId      String   // Google AdSense client ID
+  enableVignette  Boolean  @default(false)
+  enableSideRail  Boolean  @default(false)
+  enableAnchor    Boolean  @default(false)
+  vignettePlaces  String[] // Pages where vignette ads show
+  sideRailPlaces  String[] // Pages where side rail ads show
+  anchorPlaces    String[] // Pages where anchor ads show
+  excludedPages   String[] // Pages with no ads (payment, checkout)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
