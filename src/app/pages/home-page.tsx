@@ -42,7 +42,7 @@ export function HomePage() {
                           {/* Watermark */}
                           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                             <div className="text-white/10 text-6xl md:text-8xl font-bold transform rotate-[-30deg] select-none">
-                              PHOTOMARKET
+                              Like Photo Studio
                             </div>
                           </div>
 

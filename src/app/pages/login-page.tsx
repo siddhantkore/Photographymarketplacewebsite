@@ -28,7 +28,7 @@ export function LoginPage() {
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-          <p className="text-gray-600">Login to your PhotoMarket account</p>
+          <p className="text-gray-600">Login to your Like Photo Studio account</p>
         </div>
 
         <div className="bg-white p-8 rounded-lg shadow-sm">
@@ -77,7 +77,7 @@ export function LoginPage() {
               <strong>User:</strong> any email / any password
             </p>
             <p className="text-blue-700">
-              <strong>Admin:</strong> admin@photomarket.com / admin
+              <strong>Admin:</strong> admin@likephotostudio.com / admin
             </p>
           </div>
         </div>

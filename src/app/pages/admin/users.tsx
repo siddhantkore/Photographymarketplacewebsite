@@ -6,7 +6,7 @@ export function AdminUsers() {
   const users = [
     { id: '1', name: 'John Doe', email: 'john@example.com', role: 'user' as const, joinDate: '2025-12-15' },
     { id: '2', name: 'Jane Smith', email: 'jane@example.com', role: 'user' as const, joinDate: '2025-11-20' },
-    { id: 'admin1', name: 'Admin', email: 'admin@photomarket.com', role: 'admin' as const, joinDate: '2024-01-01' },
+    { id: 'admin1', name: 'Admin', email: 'admin@likephotostudio.com', role: 'admin' as const, joinDate: '2024-01-01' },
   ];
 
   return (

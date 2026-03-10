@@ -23,14 +23,14 @@ info:
     
   contact:
     name: API Support
-    email: support@photomarket.com
+    email: support@likephotostudio.com
   license:
     name: MIT
     
 servers:
   - url: http://localhost:5000/api/v1
     description: Local development server
-  - url: https://api.photomarket.com/api/v1
+  - url: https://api.likephotostudio.com/api/v1
     description: Production server
 
 tags:

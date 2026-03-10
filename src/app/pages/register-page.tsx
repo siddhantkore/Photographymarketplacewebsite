@@ -29,7 +29,7 @@ export function RegisterPage() {
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
-          <p className="text-gray-600">Join PhotoMarket today</p>
+          <p className="text-gray-600">Join Like Photo Studio today</p>
         </div>
 
         <div className="bg-white p-8 rounded-lg shadow-sm">

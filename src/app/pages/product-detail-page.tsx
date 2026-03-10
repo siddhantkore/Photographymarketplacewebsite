@@ -108,7 +108,7 @@ export function ProductDetailPage() {
               {/* Watermark */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="text-white/20 text-6xl font-bold transform rotate-[-30deg] select-none">
-                  PHOTOMARKET
+                  LIKE PHOTO STUDIO
                 </div>
               </div>
               {/* Type Badge */}

@@ -36,7 +36,7 @@ export function AdminLayout() {
         <aside className="w-64 bg-white border-r border-gray-200 min-h-screen fixed left-0 top-0">
           <div className="p-6">
             <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
-            <p className="text-sm text-gray-500 mt-1">PhotoMarket</p>
+            <p className="text-sm text-gray-500 mt-1">Like Photo Studio</p>
           </div>
           
           <nav className="px-3 space-y-1">
