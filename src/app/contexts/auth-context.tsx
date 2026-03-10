@@ -41,12 +41,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         console.error('Failed to load user:', error);
+        // Clear tokens if they're invalid
+        clearTokens();
       } finally {
         setLoading(false);
       }
     };
 
-    loadUser();
+    // Only load user if we have a token
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      loadUser();
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   const login = async (email: string, password: string) => {

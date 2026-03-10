@@ -45,6 +45,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Failed to load cart:', error);
+      // Don't show error to user, just log it
+      setItems([]);
     } finally {
       setLoading(false);
     }
