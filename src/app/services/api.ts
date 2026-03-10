@@ -55,9 +55,22 @@ class ApiClient {
             headers,
           });
           if (!retryResponse.ok) {
-            throw new Error(`HTTP error! status: ${retryResponse.status}`);
+            const errorText = await retryResponse.text();
+            let errorMessage = `HTTP error! status: ${retryResponse.status}`;
+            try {
+              const errorJson = JSON.parse(errorText);
+              errorMessage = errorJson.message || errorMessage;
+            } catch {
+              // If not JSON, use status text
+              errorMessage = retryResponse.statusText || errorMessage;
+            }
+            throw new Error(errorMessage);
           }
-          return await retryResponse.json();
+          const contentType = retryResponse.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            return await retryResponse.json();
+          }
+          return {} as T; // Return empty object for non-JSON responses
         } else {
           clearTokens();
           window.location.href = '/login';
@@ -66,13 +79,31 @@ class ApiClient {
       }
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || `HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorMessage;
+        } catch {
+          // If not JSON, use status text
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
-      return await response.json();
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+      }
+      return {} as T; // Return empty object for non-JSON responses
     } catch (error) {
       console.error('API request failed:', error);
+      
+      // Better error messages for network errors
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Unable to connect to server. Please make sure the backend is running on http://localhost:5000');
+      }
+      
       throw error;
     }
   }

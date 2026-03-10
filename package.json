@@ -4,8 +4,11 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
+    "dev": "vite",
     "build": "vite build",
-    "dev": "vite"
+    "preview": "vite preview",
+    "backend": "cd backend && npm run dev",
+    "setup": "npm install && cd backend && npm install && npm run prisma:generate && npm run prisma:migrate && npm run prisma:seed"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
