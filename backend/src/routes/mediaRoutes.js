@@ -1,5 +1,5 @@
 import express from 'express';
-import { upload, deleteFromS3 } from '../config/aws.js';
+import { upload, deleteFromS3 } from '../config/storage.js';
 import { authenticate, isAdmin } from '../middlewares/auth.js';
 
 const router = express.Router();

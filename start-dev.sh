@@ -8,49 +8,51 @@ echo "================================================"
 echo ""
 
 # Check if PostgreSQL is running
-echo "📊 Step 1: Checking PostgreSQL..."
-if command -v pg_isready &> /dev/null; then
-    if pg_isready -q; then
-        echo "✅ PostgreSQL is running"
+# Check if PostgreSQL is running in Docker
+echo "📊 Step 1: Checking PostgreSQL (Docker)..."
+
+MAX_RETRIES=10
+RETRY_COUNT=0
+
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+    if docker exec fleet-management-db pg_isready -U postgres &> /dev/null; then
+        echo "✅ PostgreSQL is ready inside Docker!"
+        break
     else
-        echo "❌ PostgreSQL is not running"
-        echo ""
-        echo "Please start PostgreSQL first:"
-        echo "  macOS:   brew services start postgresql"
-        echo "  Linux:   sudo systemctl start postgresql"
-        echo "  Windows: Start PostgreSQL service from Services app"
-        exit 1
+        echo "⏳ Waiting for fleet-management-db to initialize... ($((RETRY_COUNT + 1))/$MAX_RETRIES)"
+        sleep 3
+        RETRY_COUNT=$((RETRY_COUNT + 1))
     fi
-else
-    echo "⚠️  Cannot check PostgreSQL status (pg_isready not found)"
-    echo "   Please make sure PostgreSQL is running manually"
+done
+
+if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+    echo "❌ PostgreSQL failed to start in time."
+    echo "   Try: docker start fleet-management-db"
+    exit 1
 fi
 
 echo ""
 
 # Check if database exists
+# Check if database exists (Using Docker Exec)
 echo "🗄️  Step 2: Checking database..."
-if command -v psql &> /dev/null; then
-    if psql -U postgres -lqt | cut -d \| -f 1 | grep -qw photomarket; then
-        echo "✅ Database 'photomarket' exists"
-    else
-        echo "⚠️  Database 'photomarket' does not exist"
-        echo ""
-        read -p "Create database now? (y/n) " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            psql -U postgres -c "CREATE DATABASE photomarket;"
-            echo "✅ Database created"
-        else
-            echo "❌ Database required. Please create manually:"
-            echo "   psql -U postgres"
-            echo "   CREATE DATABASE photomarket;"
-            exit 1
-        fi
-    fi
+
+# We check inside the container if the 'photomarket' database exists
+DB_EXISTS=$(docker exec fleet-management-db psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname='photomarket'")
+
+if [ "$DB_EXISTS" = "1" ]; then
+    echo "✅ Database 'photomarket' exists"
 else
-    echo "⚠️  Cannot check database (psql not found)"
-    echo "   Please make sure database 'photomarket' exists"
+    echo "⚠️  Database 'photomarket' does not exist"
+    read -p "Create database now? (y/n) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        docker exec fleet-management-db psql -U postgres -c "CREATE DATABASE photomarket;"
+        echo "✅ Database created"
+    else
+        echo "❌ Database required. Script stopped."
+        exit 1
+    fi
 fi
 
 echo ""
@@ -143,24 +145,28 @@ tell application "Terminal"
 end tell
 END
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    # Linux
-    if command -v gnome-terminal &> /dev/null; then
-        gnome-terminal -- bash -c "cd $PWD/backend && npm run dev; exec bash"
-        gnome-terminal -- bash -c "cd $PWD && npm run dev; exec bash"
-    elif command -v konsole &> /dev/null; then
-        konsole -e "cd $PWD/backend && npm run dev"
-        konsole -e "cd $PWD && npm run dev"
-    else
-        echo "⚠️  Could not detect terminal emulator"
-        echo ""
-        echo "Please open 2 terminals manually and run:"
-        echo ""
-        echo "Terminal 1:"
-        echo "  cd backend && npm run dev"
-        echo ""
-        echo "Terminal 2:"
-        echo "  npm run dev"
-    fi
+    echo "🚀 Starting servers in a tmux session..."
+    tmux new-session -d -s photomarket 'cd backend && npm run dev'
+    tmux split-window -h 'npm run dev'
+    tmux attach-session -t photomarket
+    # # Linux
+    # if command -v gnome-terminal &> /dev/null; then
+    #     gnome-terminal -- bash -c "cd $PWD/backend && npm run dev; exec bash"
+    #     gnome-terminal -- bash -c "cd $PWD && npm run dev; exec bash"
+    # elif command -v konsole &> /dev/null; then
+    #     konsole -e "cd $PWD/backend && npm run dev"
+    #     konsole -e "cd $PWD && npm run dev"
+    # else
+    #     echo "⚠️  Could not detect terminal emulator"
+    #     echo ""
+    #     echo "Please open 2 terminals manually and run:"
+    #     echo ""
+    #     echo "Terminal 1:"
+    #     echo "  cd backend && npm run dev"
+    #     echo ""
+    #     echo "Terminal 2:"
+    #     echo "  npm run dev"
+    # fi
 else
     # Windows or other
     echo "⚠️  Auto-start not available on this OS"
