@@ -63,7 +63,7 @@ export function CartPage() {
                       />
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div className="text-white/20 text-lg font-bold transform rotate-[-30deg] select-none">
-                          PM
+                          LPS
                         </div>
                       </div>
                     </div>
