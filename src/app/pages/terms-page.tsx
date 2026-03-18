@@ -7,7 +7,7 @@ export function TermsPage() {
           <section>
             <h2 className="text-2xl font-bold text-gray-900 mb-3">1. Acceptance of Terms</h2>
             <p className="text-gray-700 leading-relaxed">
-              By accessing and using Like Photo Studio, you accept and agree to be bound by these terms and conditions.
+              By accessing and using PhotoMarket, you accept and agree to be bound by these terms and conditions.
             </p>
           </section>
           <section>

@@ -10,6 +10,7 @@ import { ProfilePage } from "./pages/profile-page";
 import { OrdersPage } from "./pages/orders-page";
 import { BlogListPage } from "./pages/blog-list-page";
 import { BlogDetailPage } from "./pages/blog-detail-page";
+import { ServicesPage } from "./pages/services-page";
 import { LoginPage } from "./pages/login-page";
 import { RegisterPage } from "./pages/register-page";
 import { AboutPage } from "./pages/about-page";
@@ -24,6 +25,9 @@ import { AdminUsers } from "./pages/admin/users";
 import { AdminOrders } from "./pages/admin/orders";
 import { AdminBlogs } from "./pages/admin/blogs";
 import { AdminAds } from "./pages/admin/ads";
+import { AdminServices } from "./pages/admin/services";
+import { AdminContactInquiries } from "./pages/admin/contact-inquiries";
+import { AdminSiteConfig } from "./pages/admin/site-config";
 import { NotFoundPage } from "./pages/not-found-page";
 
 export const router = createBrowserRouter([
@@ -40,6 +44,7 @@ export const router = createBrowserRouter([
       { path: "orders", Component: OrdersPage },
       { path: "blog", Component: BlogListPage },
       { path: "blog/:id", Component: BlogDetailPage },
+      { path: "services", Component: ServicesPage },
       { path: "login", Component: LoginPage },
       { path: "register", Component: RegisterPage },
       { path: "about", Component: AboutPage },
@@ -61,6 +66,9 @@ export const router = createBrowserRouter([
       { path: "orders", Component: AdminOrders },
       { path: "blogs", Component: AdminBlogs },
       { path: "ads", Component: AdminAds },
+      { path: "services", Component: AdminServices },
+      { path: "inquiries", Component: AdminContactInquiries },
+      { path: "settings", Component: AdminSiteConfig },
     ],
   },
   {
