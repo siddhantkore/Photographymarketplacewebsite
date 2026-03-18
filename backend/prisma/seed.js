@@ -9,16 +9,16 @@ async function main() {
   // Create admin user
   const adminPassword = await bcrypt.hash('admin', 12);
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@likephotostudio.com' },
+    where: { email: 'admin@photomarket.com' },
     update: {},
     create: {
       name: 'Admin',
-      email: 'admin@likephotostudio.com',
+      email: 'admin@photomarket.com',
       password: adminPassword,
       role: 'ADMIN',
     },
   });
-  console.log('Admin user created');
+  console.log('✅ Admin user created');
 
   // Create test user
   const userPassword = await bcrypt.hash('password123', 12);
@@ -32,7 +32,7 @@ async function main() {
       role: 'USER',
     },
   });
-  console.log('Test user created');
+  console.log('✅ Test user created');
 
   // Create categories
   const categories = [
@@ -65,7 +65,7 @@ async function main() {
       create: cat,
     });
   }
-  console.log('Categories created');
+  console.log('✅ Categories created');
 
   // Create Google Ad Settings
   await prisma.googleAdSettings.upsert({
@@ -83,9 +83,9 @@ async function main() {
       excludedPages: ['/checkout', '/cart', '/payment'],
     },
   });
-  console.log('Google Ad settings created');
+  console.log('✅ Google Ad settings created');
 
-  console.log('Seeding completed successfully!');
+  console.log('🎉 Seeding completed successfully!');
 }
 
 main()

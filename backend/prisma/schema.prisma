@@ -92,9 +92,27 @@ model Product {
   type          ProductType
   categories    String[]
   tags          String[]
-  previewImage  String
-  bundleImages  String[]
-  originalFiles String[]     // S3 keys for original files
+  
+  // Preview images (watermarked, low quality) - publicly accessible
+  previewImageHD      String
+  previewImageFullHD  String
+  previewImage4K      String
+  
+  // For bundles - preview images (watermarked)
+  bundlePreviewsHD     String[]
+  bundlePreviewsFullHD String[]
+  bundlePreviews4K     String[]
+  
+  // Original files (no watermark, high quality) - secured, only via signed URLs
+  originalFileHD      String   // S3 key for HD original
+  originalFileFullHD  String   // S3 key for Full HD original
+  originalFile4K      String   // S3 key for 4K original
+  
+  // For bundles - original files
+  bundleOriginalsHD     String[] // S3 keys for HD bundle originals
+  bundleOriginalsFullHD String[] // S3 keys for Full HD bundle originals
+  bundleOriginals4K     String[] // S3 keys for 4K bundle originals
+  
   orientation   Orientation
   uploadDate    DateTime     @default(now())
   popularity    Int          @default(0)
@@ -102,7 +120,7 @@ model Product {
   priceFullHD   Float
   price4K       Float
   status        Status       @default(ACTIVE)
-  filesCount    Int          @default(1)
+  filesCount    Int          @default(1) // Number of files in bundle (1 for single photo)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   
@@ -221,4 +239,52 @@ model GoogleAdSettings {
   excludedPages   String[] // Pages with no ads (payment, checkout)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+model Service {
+  id          String   @id @default(uuid())
+  title       String
+  description String   @db.Text
+  icon        String   // Icon name or image URL
+  price       String?  // e.g., "Starting from ₹25,000" or "Custom Quote"
+  features    String[] // List of features included
+  image       String?  // Optional service image
+  status      Status   @default(ACTIVE)
+  order       Int      @default(0) // For custom ordering
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([status, order])
+}
+
+model ContactInquiry {
+  id          String   @id @default(uuid())
+  name        String
+  email       String
+  phone       String?
+  subject     String
+  message     String   @db.Text
+  inquiryType String   // 'service', 'advertisement', 'general'
+  serviceId   String?  // If inquiry is for a specific service
+  status      String   @default("NEW") // NEW, READ, RESPONDED, CLOSED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([status, createdAt])
+  @@index([inquiryType])
+}
+
+model SiteConfig {
+  id                  String   @id @default(uuid())
+  phoneNumber         String   @default("+91 98765 43210")
+  email               String   @default("info@photomarket.com")
+  address             String?
+  signedUrlDuration   Int      @default(3600) // Duration in seconds (default 1 hour)
+  watermarkText       String   @default("PHOTOMARKET")
+  watermarkOpacity    Int      @default(30) // 0-100
+  previewQuality      Int      @default(60) // JPEG quality for preview (0-100)
+  allowedImageFormats String[] @default(["jpg", "jpeg", "png", "webp"])
+  maxFileSize         Int      @default(52428800) // 50MB in bytes
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }

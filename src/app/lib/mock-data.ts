@@ -375,7 +375,7 @@ export const currentUser: User = {
 export const adminUser: User = {
   id: 'admin1',
   name: 'Admin',
-  email: 'admin@likephotostudio.com',
+  email: 'admin@photomarket.com',
   role: 'admin',
   joinDate: '2024-01-01',
 };

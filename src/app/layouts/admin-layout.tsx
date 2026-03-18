@@ -8,6 +8,9 @@ import {
   ShoppingCart,
   FileText,
   Megaphone,
+  Camera,
+  Mail,
+  Settings,
   LogOut,
 } from 'lucide-react';
 
@@ -23,10 +26,13 @@ export function AdminLayout() {
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'Products', href: '/admin/products', icon: Package },
     { name: 'Categories', href: '/admin/categories', icon: FolderTree },
+    { name: 'Services', href: '/admin/services', icon: Camera },
     { name: 'Users', href: '/admin/users', icon: Users },
     { name: 'Orders', href: '/admin/orders', icon: ShoppingCart },
     { name: 'Blogs', href: '/admin/blogs', icon: FileText },
     { name: 'Advertisements', href: '/admin/ads', icon: Megaphone },
+    { name: 'Inquiries', href: '/admin/inquiries', icon: Mail },
+    { name: 'Settings', href: '/admin/settings', icon: Settings },
   ];
 
   return (
@@ -36,7 +42,7 @@ export function AdminLayout() {
         <aside className="w-64 bg-white border-r border-gray-200 min-h-screen fixed left-0 top-0">
           <div className="p-6">
             <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
-            <p className="text-sm text-gray-500 mt-1">Like Photo Studio</p>
+            <p className="text-sm text-gray-500 mt-1">PhotoMarket</p>
           </div>
           
           <nav className="px-3 space-y-1">

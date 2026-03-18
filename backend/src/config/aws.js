@@ -84,37 +84,4 @@ export const getPublicUrl = (key) => {
   return `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
 };
 
-/**
- * The abstraction layer for saving files to S3, which can be used in other parts
- * of the application without worrying about the underlying S3 implementation.
- * It takes a file object (from multer) and uploads it to S3, returning the public URL
- * of the uploaded file.
- * 
- * Can Dynamically Change the Storage Implementation in the Future (e.g., switch to Google Cloud Storage or Azure Blob Storage)
- * without affecting the rest of the application.
- * @param {*} file 
- * @returns 
- */
-export const saveFileTOStorage = async (file) => {
-  if (!file) {
-    throw new Error('No file provided');
-  }
-
-  const params = {
-    Bucket: process.env.AWS_S3_BUCKET,
-    Key: file.key,
-    Body: file.buffer,
-    ACL: 'public-read',
-  };
-
-  try {
-    await s3.upload(params).promise();
-    return getPublicUrl(file.key);
-  } catch (error) {
-    console.error('Error uploading to S3:', error);
-    throw error;
-  }
-}
-
-
 export { s3 };

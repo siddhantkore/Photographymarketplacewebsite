@@ -6,6 +6,9 @@ import cartRoutes from './cartRoutes.js';
 import orderRoutes from './orderRoutes.js';
 import adRoutes from './adRoutes.js';
 import mediaRoutes from './mediaRoutes.js';
+import serviceRoutes from './serviceRoutes.js';
+import contactRoutes from './contactRoutes.js';
+import siteConfigRoutes from './siteConfigRoutes.js';
 
 const router = express.Router();
 
@@ -17,5 +20,8 @@ router.use('/orders', orderRoutes);
 router.use('/advertisements', adRoutes);
 router.use('/admin/advertisements', adRoutes);
 router.use('/media', mediaRoutes);
+router.use('/services', serviceRoutes);
+router.use('/contact', contactRoutes);
+router.use('/site-config', siteConfigRoutes);
 
 export default router;

@@ -1,7 +1,7 @@
 import prisma from '../config/database.js';
 import razorpay from '../config/razorpay.js';
 import crypto from 'crypto';
-import { generateSignedUrl } from '../config/storage.js';
+import { generateSignedUrl } from '../config/aws.js';
 
 export const createOrder = async (req, res, next) => {
   try {
