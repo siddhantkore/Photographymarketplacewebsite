@@ -1,7 +1,7 @@
 import prisma from '../config/database.js';
 import razorpay from '../config/razorpay.js';
 import crypto from 'crypto';
-import { generateSignedUrl } from '../config/aws.js';
+import storageProvider, { ACCESS_TYPES, STORAGE_BUCKETS } from '../storage/index.js';
 
 export const createOrder = async (req, res, next) => {
   try {
@@ -391,11 +391,15 @@ export const generateDownloadLink = async (req, res, next) => {
     const item = order.items[0];
     const product = item.product;
 
-    // Get file key from S3
+    // Get stored original file key
     const fileKey = product.originalFiles[0]; // For bundles, this would be a zip file
 
     // Generate signed URL (valid for 1 hour)
-    const downloadUrl = generateSignedUrl(fileKey, 3600);
+    const downloadUrl = await storageProvider.generateAccessUrl(fileKey, {
+      bucketType: STORAGE_BUCKETS.ORIGINAL,
+      access: ACCESS_TYPES.SIGNED,
+      expiresIn: 3600,
+    });
     const expiresAt = new Date(Date.now() + 3600 * 1000);
 
     res.json({

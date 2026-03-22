@@ -4,6 +4,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import routes from './routes/index.js';
 import { errorHandler, notFound } from './middlewares/errorHandler.js';
+import { getStorageProviderInfo } from './storage/index.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -45,11 +46,17 @@ app.use('/api/v1', routes);
 app.use(notFound);
 app.use(errorHandler);
 
+const storageInfo = getStorageProviderInfo();
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🌐 Client URL: ${process.env.CLIENT_URL || 'http://localhost:5173'}`);
+  console.log(`🗂️ Storage Provider: ${storageInfo.provider}`);
+  console.log(
+    `🪣 Buckets: preview=${storageInfo.buckets.preview_bucket}, original=${storageInfo.buckets.original_bucket}`
+  );
 });
 
 export default app;

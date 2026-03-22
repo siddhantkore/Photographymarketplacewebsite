@@ -19,7 +19,7 @@ A comprehensive photography marketplace where a single admin can upload and sell
 - **Node.js + Express** REST API
 - **PostgreSQL** database with Prisma ORM
 - **JWT Authentication** with refresh tokens
-- **AWS S3** for media storage
+- **Pluggable Object Storage** (AWS S3 / Cloudflare R2)
 - **Razorpay** payment integration
 - **Role-based Access Control** (User/Admin)
 - **OpenAPI 3.1.0** specification
@@ -37,7 +37,7 @@ A comprehensive photography marketplace where a single admin can upload and sell
 
 - **Node.js** v18 or higher
 - **PostgreSQL** v14 or higher
-- **AWS Account** (for S3 storage)
+- **Object Storage Account** (AWS S3 or Cloudflare R2)
 - **Razorpay Account** (for payments)
 - **Google AdSense Account** (optional, for ads)
 
@@ -81,11 +81,21 @@ JWT_EXPIRES_IN=1h
 REFRESH_TOKEN_SECRET=your-refresh-token-secret-change-this-in-production
 REFRESH_TOKEN_EXPIRES_IN=7d
 
-# AWS S3
+# Storage Provider
+STORAGE_PROVIDER=s3 # s3 | r2
+PREVIEW_BUCKET_NAME=preview-assets-bucket
+ORIGINAL_BUCKET_NAME=original-assets-bucket
+STORAGE_SIGNED_URL_EXPIRY=3600
+
+# AWS S3 (required when STORAGE_PROVIDER=s3)
 AWS_ACCESS_KEY_ID=your-aws-access-key
 AWS_SECRET_ACCESS_KEY=your-aws-secret-key
 AWS_REGION=us-east-1
-AWS_S3_BUCKET=your-bucket-name
+
+# Cloudflare R2 (required when STORAGE_PROVIDER=r2)
+R2_ACCOUNT_ID=your-account-id
+R2_ACCESS_KEY_ID=your-r2-access-key
+R2_SECRET_ACCESS_KEY=your-r2-secret-key
 
 # Razorpay
 RAZORPAY_KEY_ID=your-razorpay-key-id
@@ -190,9 +200,11 @@ Uses **Razorpay** for payment processing:
 5. Order marked as completed
 6. Download links generated for purchased items
 
-## 📦 AWS S3 Integration
+## 📦 Storage Integration
 
-Media files are stored in AWS S3:
+Media files are stored via an abstraction layer:
+- `STORAGE_PROVIDER=s3` for AWS S3
+- `STORAGE_PROVIDER=r2` for Cloudflare R2
 
 - **Product Images** - Watermarked previews (public)
 - **Original Files** - Full resolution files (private, signed URLs)
@@ -200,7 +212,7 @@ Media files are stored in AWS S3:
 
 **Folder Structure:**
 \`\`\`
-s3://your-bucket/
+<preview_bucket> and <original_bucket> buckets/containers
 ├── product/          # Product images
 ├── watermarked/      # Watermarked previews
 ├── category/         # Category images

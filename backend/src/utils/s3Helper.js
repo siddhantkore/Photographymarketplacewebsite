@@ -1,188 +1,91 @@
 /**
- * S3 Helper Utility
- * Handles S3 operations including signed URL generation
+ * Storage helper utility.
+ * Kept as backward-compatible exports for existing code paths.
  */
 
-import AWS from 'aws-sdk';
+import storageProvider, {
+  ACCESS_TYPES,
+  STORAGE_BUCKETS,
+  normalizeStorageBucketType,
+} from '../storage/index.js';
 
-// Configure AWS SDK
-const s3 = new AWS.S3({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION,
-});
+function resolveBucketType(options = {}) {
+  if (options.bucketType) {
+    return normalizeStorageBucketType(options.bucketType, STORAGE_BUCKETS.ORIGINAL);
+  }
 
-const BUCKET_NAME = process.env.AWS_S3_BUCKET;
+  if (options.acl === 'public-read') {
+    return STORAGE_BUCKETS.PREVIEW;
+  }
 
-/**
- * Upload file to S3
- * @param {Buffer} fileBuffer - File buffer
- * @param {string} key - S3 object key
- * @param {Object} options - Upload options
- * @returns {Promise<{success: boolean, key: string, url?: string}>}
- */
+  return STORAGE_BUCKETS.ORIGINAL;
+}
+
+export async function uploadToStorage(fileBuffer, key, options = {}) {
+  const bucketType = resolveBucketType(options);
+
+  const result = await storageProvider.upload(fileBuffer, key, {
+    bucketType,
+    contentType: options.contentType,
+    metadata: options.metadata,
+    acl: options.acl,
+  });
+
+  return {
+    success: true,
+    key: result.path,
+    url:
+      result.url ||
+      (await storageProvider.generateAccessUrl(key, {
+        bucketType,
+        access: bucketType === STORAGE_BUCKETS.PREVIEW ? ACCESS_TYPES.PUBLIC : ACCESS_TYPES.SIGNED,
+        expiresIn: options.expiresIn || 3600,
+      })),
+  };
+}
+
 export async function uploadToS3(fileBuffer, key, options = {}) {
-  const {
-    contentType = 'image/jpeg',
-    acl = 'private', // or 'public-read' for preview images
-    metadata = {},
-  } = options;
-
-  try {
-    const params = {
-      Bucket: BUCKET_NAME,
-      Key: key,
-      Body: fileBuffer,
-      ContentType: contentType,
-      ACL: acl,
-      Metadata: metadata,
-    };
-
-    const result = await s3.upload(params).promise();
-
-    return {
-      success: true,
-      key: result.Key,
-      url: result.Location,
-    };
-  } catch (error) {
-    console.error('Error uploading to S3:', error);
-    throw new Error('Failed to upload file to S3');
-  }
+  return uploadToStorage(fileBuffer, key, options);
 }
 
-/**
- * Generate signed URL for secure access to private files
- * @param {string} key - S3 object key
- * @param {number} expiresIn - URL expiration time in seconds
- * @returns {Promise<string>} - Signed URL
- */
 export async function generateSignedUrl(key, expiresIn = 3600) {
-  try {
-    const params = {
-      Bucket: BUCKET_NAME,
-      Key: key,
-      Expires: expiresIn,
-    };
-
-    const url = await s3.getSignedUrlPromise('getObject', params);
-    return url;
-  } catch (error) {
-    console.error('Error generating signed URL:', error);
-    throw new Error('Failed to generate signed URL');
-  }
+  return storageProvider.generateAccessUrl(key, {
+    bucketType: STORAGE_BUCKETS.ORIGINAL,
+    access: ACCESS_TYPES.SIGNED,
+    expiresIn,
+  });
 }
 
-/**
- * Generate signed URLs for multiple files (e.g., bundle)
- * @param {string[]} keys - Array of S3 object keys
- * @param {number} expiresIn - URL expiration time in seconds
- * @returns {Promise<string[]>} - Array of signed URLs
- */
 export async function generateSignedUrls(keys, expiresIn = 3600) {
-  try {
-    const urls = await Promise.all(
-      keys.map((key) => generateSignedUrl(key, expiresIn))
-    );
-    return urls;
-  } catch (error) {
-    console.error('Error generating signed URLs:', error);
-    throw new Error('Failed to generate signed URLs');
-  }
+  return Promise.all(keys.map((key) => generateSignedUrl(key, expiresIn)));
 }
 
-/**
- * Delete file from S3
- * @param {string} key - S3 object key
- * @returns {Promise<boolean>}
- */
-export async function deleteFromS3(key) {
-  try {
-    const params = {
-      Bucket: BUCKET_NAME,
-      Key: key,
-    };
-
-    await s3.deleteObject(params).promise();
-    return true;
-  } catch (error) {
-    console.error('Error deleting from S3:', error);
-    return false;
-  }
+export async function deleteFromStorage(key, options = {}) {
+  const bucketType = resolveBucketType(options);
+  await storageProvider.delete(key, { bucketType });
+  return true;
 }
 
-/**
- * Delete multiple files from S3
- * @param {string[]} keys - Array of S3 object keys
- * @returns {Promise<boolean>}
- */
-export async function deleteMultipleFromS3(keys) {
-  try {
-    const params = {
-      Bucket: BUCKET_NAME,
-      Delete: {
-        Objects: keys.map((key) => ({ Key: key })),
-      },
-    };
-
-    await s3.deleteObjects(params).promise();
-    return true;
-  } catch (error) {
-    console.error('Error deleting multiple files from S3:', error);
-    return false;
-  }
+export async function deleteFromS3(key, options = {}) {
+  return deleteFromStorage(key, options);
 }
 
-/**
- * Check if file exists in S3
- * @param {string} key - S3 object key
- * @returns {Promise<boolean>}
- */
-export async function fileExistsInS3(key) {
-  try {
-    const params = {
-      Bucket: BUCKET_NAME,
-      Key: key,
-    };
-
-    await s3.headObject(params).promise();
-    return true;
-  } catch (error) {
-    if (error.code === 'NotFound') {
-      return false;
-    }
-    throw error;
-  }
+export async function deleteMultipleFromS3(keys, options = {}) {
+  await Promise.all(keys.map((key) => deleteFromStorage(key, options)));
+  return true;
 }
 
-/**
- * Get file from S3
- * @param {string} key - S3 object key
- * @returns {Promise<Buffer>}
- */
-export async function getFileFromS3(key) {
-  try {
-    const params = {
-      Bucket: BUCKET_NAME,
-      Key: key,
-    };
-
-    const result = await s3.getObject(params).promise();
-    return result.Body;
-  } catch (error) {
-    console.error('Error getting file from S3:', error);
-    throw new Error('Failed to get file from S3');
-  }
+export async function fileExistsInS3(key, options = {}) {
+  const bucketType = resolveBucketType(options);
+  return storageProvider.exists(key, { bucketType });
 }
 
-/**
- * Generate unique S3 key with folder structure
- * @param {string} folder - Folder name (e.g., 'originals', 'previews')
- * @param {string} filename - Original filename
- * @param {string} quality - Quality level (HD, FULL_HD, FOUR_K)
- * @returns {string} - S3 key
- */
-export function generateS3Key(folder, filename, quality = '') {
+export async function getFileFromS3(key, options = {}) {
+  const bucketType = resolveBucketType(options);
+  return storageProvider.get(key, { bucketType });
+}
+
+export function generateStorageKey(folder, filename, quality = '') {
   const timestamp = Date.now();
   const randomString = Math.random().toString(36).substring(7);
   const extension = filename.split('.').pop();
@@ -191,36 +94,33 @@ export function generateS3Key(folder, filename, quality = '') {
   return `${folder}/${qualityPrefix}${timestamp}_${randomString}.${extension}`;
 }
 
-/**
- * Copy file within S3
- * @param {string} sourceKey - Source object key
- * @param {string} destinationKey - Destination object key
- * @returns {Promise<boolean>}
- */
-export async function copyFileInS3(sourceKey, destinationKey) {
-  try {
-    const params = {
-      Bucket: BUCKET_NAME,
-      CopySource: `${BUCKET_NAME}/${sourceKey}`,
-      Key: destinationKey,
-    };
+export function generateS3Key(folder, filename, quality = '') {
+  return generateStorageKey(folder, filename, quality);
+}
 
-    await s3.copyObject(params).promise();
-    return true;
-  } catch (error) {
-    console.error('Error copying file in S3:', error);
-    return false;
-  }
+export async function copyFileInS3(sourceKey, destinationKey, options = {}) {
+  const bucketType = resolveBucketType(options);
+  const fileBuffer = await storageProvider.get(sourceKey, { bucketType });
+  await storageProvider.upload(fileBuffer, destinationKey, {
+    bucketType,
+    contentType: options.contentType,
+    metadata: options.metadata,
+    acl: options.acl,
+  });
+  return true;
 }
 
 export default {
+  uploadToStorage,
   uploadToS3,
   generateSignedUrl,
   generateSignedUrls,
+  deleteFromStorage,
   deleteFromS3,
   deleteMultipleFromS3,
   fileExistsInS3,
   getFileFromS3,
+  generateStorageKey,
   generateS3Key,
   copyFileInS3,
 };
