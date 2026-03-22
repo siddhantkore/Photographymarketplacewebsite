@@ -3,6 +3,14 @@
 const API_BASE_URL = 'http://localhost:5000/api/v1';
 console.log('API_BASE_URL:', API_BASE_URL);
 
+const safeParseJson = (text: string) => {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+};
+
 // Token management
 const getToken = () => localStorage.getItem('accessToken');
 const getRefreshToken = () => localStorage.getItem('refreshToken');
@@ -44,6 +52,10 @@ class ApiClient {
 
     try {
       const response = await fetch(`${this.baseURL}${endpoint}`, config);
+      const contentType = response.headers.get('content-type') || '';
+      const isJson = contentType.includes('application/json');
+      const responseText = await response.text();
+      const responseJson = isJson ? safeParseJson(responseText) : null;
 
       // Handle 401 - Try to refresh token
       if (response.status === 401 && token) {
@@ -56,22 +68,29 @@ class ApiClient {
             headers,
           });
           if (!retryResponse.ok) {
+            const retryContentType = retryResponse.headers.get('content-type') || '';
+            const retryIsJson = retryContentType.includes('application/json');
             const errorText = await retryResponse.text();
+            const errorJson = retryIsJson ? safeParseJson(errorText) : null;
             let errorMessage = `HTTP error! status: ${retryResponse.status}`;
-            try {
-              const errorJson = JSON.parse(errorText);
-              errorMessage = errorJson.message || errorMessage;
-            } catch {
-              // If not JSON, use status text
+            if (errorJson && typeof errorJson === 'object' && 'message' in errorJson) {
+              errorMessage = (errorJson as any).message || errorMessage;
+            } else if (errorText) {
+              errorMessage = errorText;
+            } else {
               errorMessage = retryResponse.statusText || errorMessage;
             }
             throw new Error(errorMessage);
           }
-          const contentType = retryResponse.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            return await retryResponse.json();
+          const retryContentType = retryResponse.headers.get('content-type') || '';
+          const retryIsJson = retryContentType.includes('application/json');
+          const retryText = await retryResponse.text();
+          if (retryIsJson) {
+            const retryJson = safeParseJson(retryText);
+            if (retryJson !== null) return retryJson;
+            throw new Error('Invalid JSON response from server');
           }
-          return {} as T; // Return empty object for non-JSON responses
+          return (retryText ? (retryText as unknown as T) : ({} as T));
         } else {
           clearTokens();
           window.location.href = '/login';
@@ -80,23 +99,22 @@ class ApiClient {
       }
 
       if (!response.ok) {
-        const errorText = await response.text();
         let errorMessage = `HTTP error! status: ${response.status}`;
-        try {
-          const errorJson = JSON.parse(errorText);
-          errorMessage = errorJson.message || errorMessage;
-        } catch {
-          // If not JSON, use status text
+        if (responseJson && typeof responseJson === 'object' && 'message' in responseJson) {
+          errorMessage = (responseJson as any).message || errorMessage;
+        } else if (responseText) {
+          errorMessage = responseText;
+        } else {
           errorMessage = response.statusText || errorMessage;
         }
         throw new Error(errorMessage);
       }
 
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        return await response.json();
+      if (isJson) {
+        if (responseJson !== null) return responseJson;
+        throw new Error('Invalid JSON response from server');
       }
-      return {} as T; // Return empty object for non-JSON responses
+      return (responseText ? (responseText as unknown as T) : ({} as T));
     } catch (error) {
       console.error('API request failed:', error);
       
@@ -122,6 +140,10 @@ class ApiClient {
 
       if (!response.ok) return false;
 
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        return false;
+      }
       const data = await response.json();
       if (data.success && data.data.accessToken) {
         setTokens(data.data.accessToken, data.data.refreshToken);
@@ -171,12 +193,23 @@ class ApiClient {
       body: formData,
     });
 
+    const contentType = response.headers.get('content-type') || '';
+    const isJson = contentType.includes('application/json');
+    const responseText = await response.text();
+    const responseJson = isJson ? safeParseJson(responseText) : null;
+
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || `HTTP error! status: ${response.status}`);
+      if (responseJson && typeof responseJson === 'object' && 'message' in responseJson) {
+        throw new Error((responseJson as any).message);
+      }
+      throw new Error(responseText || `HTTP error! status: ${response.status}`);
     }
 
-    return await response.json();
+    if (isJson) {
+      if (responseJson !== null) return responseJson;
+      throw new Error('Invalid JSON response from server');
+    }
+    return (responseText ? (responseText as unknown as T) : ({} as T));
   }
 }
 

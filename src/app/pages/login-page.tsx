@@ -77,7 +77,7 @@ export function LoginPage() {
               <strong>User:</strong> any email / any password
             </p>
             <p className="text-blue-700">
-              <strong>Admin:</strong> admin@photomarket.com / admin
+              <strong>Admin:</strong> admin@gmail.com / admin123
             </p>
           </div>
         </div>

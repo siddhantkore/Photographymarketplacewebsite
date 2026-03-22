@@ -39,7 +39,7 @@ start-dev.bat
 - ✅ Start both servers
 - ✅ Open in browser
 
-**Then:** Login with `admin@photomarket.com` / `admin`
+**Then:** Login with `admin@gmail.com` / `admin123`
 
 ---
 
@@ -102,7 +102,7 @@ npm run dev
 ### Step 5: Test
 
 1. Open: http://localhost:5173
-2. Login: `admin@photomarket.com` / `admin`
+2. Login: `admin@gmail.com` / `admin123`
 3. ✅ No more errors!
 
 ---
@@ -192,7 +192,7 @@ Your app is working when you see:
 After setup, login with:
 
 **Admin:**
-- Email: `admin@photomarket.com`
+- Email: `admin@gmail.com`
 - Password: `admin`
 
 **Test User:**
@@ -259,7 +259,7 @@ npm run dev
 http://localhost:5173
 
 # Login:
-admin@photomarket.com / admin
+admin@gmail.com / admin123
 ```
 
 ---

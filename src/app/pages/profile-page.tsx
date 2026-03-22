@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router';
+import { Link } from 'react-router';
 import { useAuth } from '../contexts/auth-context';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -6,10 +6,28 @@ import { Label } from '../components/ui/label';
 import { User, Mail, Calendar } from 'lucide-react';
 
 export function ProfilePage() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600">Loading your profile...</div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace />;
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center bg-white p-8 rounded-lg shadow-sm">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">You're not logged in</h1>
+          <p className="text-gray-600 mb-4">Please log in to view your profile.</p>
+          <Link to="/login">
+            <Button>Log in</Button>
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (

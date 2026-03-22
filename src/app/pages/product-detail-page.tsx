@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router';
+import { useParams, Link, useNavigate } from 'react-router';
 import { useState } from 'react';
 import { products, Resolution } from '../lib/mock-data';
 import { useCart } from '../contexts/cart-context';
@@ -26,6 +26,7 @@ export function ProductDetailPage() {
   const product = products.find((p) => p.id === id);
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [selectedResolution, setSelectedResolution] = useState<Resolution>('HD');
 
   if (!product) {
@@ -46,32 +47,41 @@ export function ProductDetailPage() {
     .filter((p) => p.id !== product.id && p.categories.some((c) => product.categories.includes(c)))
     .slice(0, 3);
 
-  const handleAddToCart = () => {
+  const requireAuth = () => {
     if (!isAuthenticated) {
-      toast.error('Please login to add items to cart');
-      return;
+      toast.error('Please log in to continue');
+      navigate('/login');
+      return true;
     }
-
-    addToCart({
-      productId: product.id,
-      title: product.title,
-      previewImage: product.previewImage,
-      resolution: selectedResolution,
-      price: product.prices[selectedResolution],
-    });
-
-    toast.success('Added to cart successfully!');
+    return false;
   };
 
-  const handleBuyNow = () => {
-    if (!isAuthenticated) {
-      toast.error('Please login to purchase');
-      return;
-    }
+  const handleAddToCart = async () => {
+    if (requireAuth()) return false;
 
-    handleAddToCart();
-    // Navigate to checkout would happen here
-    window.location.href = '/cart';
+    try {
+      await addToCart({
+        productId: product.id,
+        title: product.title,
+        previewImage: product.previewImage,
+        resolution: selectedResolution,
+        price: product.prices[selectedResolution],
+      });
+      toast.success('Added to cart successfully!');
+      return true;
+    } catch {
+      toast.error('Failed to add to cart');
+      return false;
+    }
+  };
+
+  const handleBuyNow = async () => {
+    if (requireAuth()) return;
+
+    const added = await handleAddToCart();
+    if (added) {
+      window.location.href = '/cart';
+    }
   };
 
   return (

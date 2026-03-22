@@ -88,7 +88,7 @@ npm run dev
 1. Open http://localhost:5173
 2. Click "Login"
 3. Use test credentials:
-   - **Admin:** admin@photomarket.com / admin
+   - **Admin:** admin@gmail.com / admin123
    - **User:** john.doe@example.com / password123
 4. Browse products, add to cart, test checkout!
 

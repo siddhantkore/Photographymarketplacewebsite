@@ -16,7 +16,7 @@ import {
 export function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
-  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, logout, loading } = useAuth();
   const { getItemCount } = useCart();
 
   const handleSearch = (e: React.FormEvent) => {
@@ -72,10 +72,10 @@ export function Header() {
 
             {/* Cart */}
             <Link to="/cart" className="relative">
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="relative">
                 <ShoppingCart className="w-5 h-5" />
                 {getItemCount() > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] min-w-4 h-4 px-1 rounded-full flex items-center justify-center ring-2 ring-white">
                     {getItemCount()}
                   </span>
                 )}
@@ -83,54 +83,64 @@ export function Header() {
             </Link>
 
             {/* User Menu */}
-            {isAuthenticated ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <User className="w-5 h-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <div className="px-2 py-1.5 text-sm">
-                    <p className="font-medium">{user?.name}</p>
-                    <p className="text-gray-500 text-xs">{user?.email}</p>
-                  </div>
-                  <DropdownMenuSeparator />
-                  {isAdmin && (
-                    <>
-                      <DropdownMenuItem asChild>
-                        <Link to="/admin" className="cursor-pointer">
-                          <LayoutDashboard className="w-4 h-4 mr-2" />
-                          Admin Dashboard
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                    </>
-                  )}
-                  <DropdownMenuItem asChild>
-                    <Link to="/profile" className="cursor-pointer">
-                      <User className="w-4 h-4 mr-2" />
-                      Profile
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/orders" className="cursor-pointer">
-                      <ShoppingCart className="w-4 h-4 mr-2" />
-                      My Orders
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logout} className="cursor-pointer">
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Link to="/login">
-                <Button size="sm">Login</Button>
-              </Link>
-            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <User className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                {loading ? (
+                  <div className="px-2 py-2 text-sm text-gray-500">Loading...</div>
+                ) : isAuthenticated ? (
+                  <>
+                    <div className="px-2 py-1.5 text-sm">
+                      <p className="font-medium">{user?.name}</p>
+                      <p className="text-gray-500 text-xs">{user?.email}</p>
+                    </div>
+                    <DropdownMenuSeparator />
+                    {isAdmin && (
+                      <>
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin" className="cursor-pointer">
+                            <LayoutDashboard className="w-4 h-4 mr-2" />
+                            Admin Dashboard
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
+                    <DropdownMenuItem asChild>
+                      <Link to="/profile" className="cursor-pointer">
+                        <User className="w-4 h-4 mr-2" />
+                        Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/orders" className="cursor-pointer">
+                        <ShoppingCart className="w-4 h-4 mr-2" />
+                        My Orders
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={logout} className="cursor-pointer">
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Logout
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <>
+                    <div className="px-2 py-1.5 text-sm text-gray-500">You are not logged in.</div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/login" className="cursor-pointer">
+                        Log in
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>

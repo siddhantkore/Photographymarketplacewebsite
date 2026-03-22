@@ -109,7 +109,7 @@ npm run prisma:seed
 \`\`\`
 
 **Default Users After Seeding:**
-- **Admin:** admin@photomarket.com / admin
+- **Admin:** admin@gmail.com / admin123
 - **User:** john.doe@example.com / password123
 
 **Start Backend Server:**
@@ -368,7 +368,7 @@ Access at `/admin` (requires admin role)
 ## 🧪 Testing
 
 **Test Credentials:**
-- Admin: admin@photomarket.com / admin
+- Admin: admin@gmail.com / admin123
 - User: john.doe@example.com / password123
 
 **Test Razorpay (Test Mode):**
