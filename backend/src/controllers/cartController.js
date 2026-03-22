@@ -9,6 +9,31 @@ const resolutionMapping = {
   FOUR_K: 'price4K',
 };
 
+const normalizeResolution = (resolution) => {
+  const normalized = String(resolution || '')
+    .trim()
+    .replace(/\s+/g, '_')
+    .toUpperCase();
+
+  if (normalized === '4K' || normalized === 'FOURK') {
+    return 'FOUR_K';
+  }
+
+  if (normalized === 'FULLHD' || normalized === 'FHD') {
+    return 'FULL_HD';
+  }
+
+  return normalized;
+};
+
+const formatResolutionForDisplay = (resolution) => {
+  const normalized = normalizeResolution(resolution);
+  if (normalized === 'FULL_HD') return 'Full HD';
+  if (normalized === 'FOUR_K') return '4K';
+  if (normalized === 'HD') return 'HD';
+  return normalized.replace(/_/g, ' ');
+};
+
 export const getCart = async (req, res, next) => {
   try {
     const cartItems = await prisma.cartItem.findMany({
@@ -23,7 +48,7 @@ export const getCart = async (req, res, next) => {
         productId: item.productId,
         title: item.product.title,
         previewImage: await getPreviewAccessUrl(item.product.previewImageHD),
-        resolution: item.resolution.replace('_', ' '),
+        resolution: formatResolutionForDisplay(item.resolution),
         price: item.price,
       }))
     );
@@ -71,7 +96,7 @@ export const addToCart = async (req, res, next) => {
     const price = product[priceField];
 
     // Convert resolution format
-    const dbResolution = resolution.replace(' ', '_').toUpperCase();
+    const dbResolution = normalizeResolution(resolution);
 
     // Check if item already exists
     const existingItem = await prisma.cartItem.findUnique({
@@ -112,7 +137,7 @@ export const addToCart = async (req, res, next) => {
         productId: item.productId,
         title: item.product.title,
         previewImage: await getPreviewAccessUrl(item.product.previewImageHD),
-        resolution: item.resolution.replace('_', ' '),
+        resolution: formatResolutionForDisplay(item.resolution),
         price: item.price,
       }))
     );
@@ -136,7 +161,7 @@ export const removeFromCart = async (req, res, next) => {
   try {
     const { productId, resolution } = req.params;
 
-    const dbResolution = resolution.replace(' ', '_').toUpperCase();
+    const dbResolution = normalizeResolution(resolution);
 
     await prisma.cartItem.delete({
       where: {
@@ -159,7 +184,7 @@ export const removeFromCart = async (req, res, next) => {
         productId: item.productId,
         title: item.product.title,
         previewImage: await getPreviewAccessUrl(item.product.previewImageHD),
-        resolution: item.resolution.replace('_', ' '),
+        resolution: formatResolutionForDisplay(item.resolution),
         price: item.price,
       }))
     );

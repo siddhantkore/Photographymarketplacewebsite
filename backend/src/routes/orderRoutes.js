@@ -2,6 +2,7 @@ import express from 'express';
 import {
   createOrder,
   verifyPayment,
+  handleRazorpayWebhook,
   getUserOrders,
   getOrderById,
   getAllOrders,
@@ -11,6 +12,7 @@ import { authenticate, isAdmin } from '../middlewares/auth.js';
 
 const router = express.Router();
 
+router.post('/webhook/razorpay', handleRazorpayWebhook);
 router.get('/', authenticate, getUserOrders);
 router.post('/', authenticate, createOrder);
 router.get('/:id', authenticate, getOrderById);

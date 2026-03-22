@@ -176,6 +176,7 @@ model Order {
   
   user          User        @relation(fields: [userId], references: [id])
   items         OrderItem[]
+  paymentEvents PaymentEvent[]
   
   @@index([userId])
   @@index([status])
@@ -189,12 +190,36 @@ model OrderItem {
   resolution Resolution
   price      Float
   downloadUrl String?
+  accessStartTime DateTime?
+  accessExpiryTime DateTime?
   createdAt  DateTime   @default(now())
   
   order      Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product    Product    @relation(fields: [productId], references: [id])
   
   @@index([orderId])
+  @@index([accessExpiryTime])
+}
+
+model PaymentEvent {
+  id          String   @id @default(uuid())
+  eventId     String?  @unique
+  eventType   String
+  gateway     String   @default("RAZORPAY")
+  orderId     String?
+  paymentId   String?
+  signature   String?
+  status      String   @default("RECEIVED")
+  payload     Json
+  processedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  order       Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([paymentId])
+  @@index([eventType])
+  @@index([createdAt])
 }
 
 model Blog {

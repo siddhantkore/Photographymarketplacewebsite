@@ -18,7 +18,15 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
-app.use(express.json());
+app.use(
+  express.json({
+    verify: (req, _res, buf) => {
+      if (req.originalUrl?.startsWith('/api/v1/orders/webhook/razorpay')) {
+        req.rawBody = buf.toString('utf8');
+      }
+    },
+  })
+);
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 

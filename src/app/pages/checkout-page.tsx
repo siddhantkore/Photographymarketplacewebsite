@@ -1,42 +1,156 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Navigate, useNavigate } from 'react-router';
 import { useCart } from '../contexts/cart-context';
 import { useAuth } from '../contexts/auth-context';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
+import { ordersApi } from '../services/api';
 import { toast } from 'sonner';
-import { CreditCard, Wallet, Building2, ShoppingBag, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
+
+type RazorpayVerifyResponse = {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+};
+
+type RazorpayCheckoutOptions = {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  prefill?: {
+    name?: string;
+    email?: string;
+  };
+  theme?: {
+    color?: string;
+  };
+  handler: (response: RazorpayVerifyResponse) => void | Promise<void>;
+  modal?: {
+    ondismiss?: () => void;
+  };
+};
+
+type RazorpayCheckoutInstance = {
+  open: () => void;
+  on?: (eventName: string, callback: (response: any) => void) => void;
+};
+
+declare global {
+  interface Window {
+    Razorpay?: new (options: RazorpayCheckoutOptions) => RazorpayCheckoutInstance;
+  }
+}
+
+let razorpayScriptPromise: Promise<void> | null = null;
+const RAZORPAY_CHECKOUT_SCRIPT_URL = 'https://checkout.razorpay.com/v1/checkout.js';
+
+const ensureRazorpayScript = async () => {
+  if (window.Razorpay) {
+    return;
+  }
+
+  if (!razorpayScriptPromise) {
+    razorpayScriptPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = RAZORPAY_CHECKOUT_SCRIPT_URL;
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Failed to load Razorpay checkout SDK'));
+      document.body.appendChild(script);
+    });
+  }
+
+  await razorpayScriptPromise;
+};
 
 export function CheckoutPage() {
   const { items, getTotal, clearCart } = useCart();
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [paymentMethod, setPaymentMethod] = useState('card');
   const [isProcessing, setIsProcessing] = useState(false);
 
   if (!isAuthenticated) {
-    navigate('/login');
-    return null;
+    return <Navigate to="/login" replace />;
   }
 
   if (items.length === 0) {
-    navigate('/cart');
-    return null;
+    return <Navigate to="/cart" replace />;
   }
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsProcessing(true);
 
-    // Simulate payment processing
-    setTimeout(() => {
-      clearCart();
-      toast.success('Order placed successfully!');
-      navigate('/orders');
+    try {
+      setIsProcessing(true);
+      await ensureRazorpayScript();
+
+      const response: any = await ordersApi.create({ paymentMethod: 'RAZORPAY' });
+      const order = response?.data?.order;
+      const payment = response?.data?.payment;
+
+      if (!order?.id || !payment?.orderId || !payment?.key) {
+        throw new Error('Invalid payment session from server');
+      }
+
+      if (!window.Razorpay) {
+        throw new Error('Razorpay checkout SDK is unavailable');
+      }
+
+      const checkout = new window.Razorpay({
+        key: payment.key,
+        amount: payment.amount,
+        currency: payment.currency || 'INR',
+        name: 'Photography Marketplace',
+        description: 'Secure digital product purchase',
+        order_id: payment.orderId,
+        prefill: {
+          name: user?.name,
+          email: user?.email,
+        },
+        theme: { color: '#2563eb' },
+        handler: async (verificationResponse) => {
+          try {
+            await ordersApi.verifyPayment(order.id, {
+              razorpayOrderId: verificationResponse.razorpay_order_id,
+              razorpayPaymentId: verificationResponse.razorpay_payment_id,
+              razorpaySignature: verificationResponse.razorpay_signature,
+            });
+
+            await clearCart();
+            toast.success('Payment verified and access granted');
+            navigate('/orders');
+          } catch (error) {
+            console.error('Payment verification failed:', error);
+            toast.error(
+              'Payment received but verification failed. Access will sync once webhook is processed.'
+            );
+          } finally {
+            setIsProcessing(false);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setIsProcessing(false);
+          },
+        },
+      });
+
+      checkout.on?.('payment.failed', () => {
+        setIsProcessing(false);
+        toast.error('Payment failed. You can retry checkout safely.');
+      });
+
+      checkout.open();
+    } catch (error: any) {
+      console.error('Checkout failed:', error);
+      toast.error(error?.message || 'Unable to start payment');
       setIsProcessing(false);
-    }, 2000);
+    }
   };
 
   return (
@@ -63,76 +177,12 @@ export function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Payment Method */}
               <div className="bg-white p-6 rounded-lg shadow-sm">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Payment Method</h2>
-                <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-                  <div className="space-y-3">
-                    <div
-                      className={`flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer ${
-                        paymentMethod === 'card' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                      }`}
-                      onClick={() => setPaymentMethod('card')}
-                    >
-                      <div className="flex items-center gap-3">
-                        <RadioGroupItem value="card" id="card" />
-                        <Label htmlFor="card" className="cursor-pointer flex items-center gap-2">
-                          <CreditCard className="w-5 h-5" />
-                          Credit / Debit Card
-                        </Label>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer ${
-                        paymentMethod === 'upi' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                      }`}
-                      onClick={() => setPaymentMethod('upi')}
-                    >
-                      <div className="flex items-center gap-3">
-                        <RadioGroupItem value="upi" id="upi" />
-                        <Label htmlFor="upi" className="cursor-pointer flex items-center gap-2">
-                          <Wallet className="w-5 h-5" />
-                          UPI
-                        </Label>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer ${
-                        paymentMethod === 'netbanking' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                      }`}
-                      onClick={() => setPaymentMethod('netbanking')}
-                    >
-                      <div className="flex items-center gap-3">
-                        <RadioGroupItem value="netbanking" id="netbanking" />
-                        <Label htmlFor="netbanking" className="cursor-pointer flex items-center gap-2">
-                          <Building2 className="w-5 h-5" />
-                          Net Banking
-                        </Label>
-                      </div>
-                    </div>
-                  </div>
-                </RadioGroup>
-
-                {paymentMethod === 'card' && (
-                  <div className="mt-6 space-y-4">
-                    <div>
-                      <Label htmlFor="cardNumber">Card Number</Label>
-                      <Input id="cardNumber" placeholder="1234 5678 9012 3456" required />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="expiry">Expiry Date</Label>
-                        <Input id="expiry" placeholder="MM/YY" required />
-                      </div>
-                      <div>
-                        <Label htmlFor="cvv">CVV</Label>
-                        <Input id="cvv" type="password" placeholder="123" maxLength={3} required />
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Payment</h2>
+                <p className="text-sm text-gray-600">
+                  Checkout opens in Razorpay and payment is verified on backend before granting
+                  download access.
+                </p>
               </div>
             </div>
 
