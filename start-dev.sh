@@ -7,10 +7,60 @@ echo "🎨 Photography Marketplace - Development Startup"
 echo "================================================"
 echo ""
 
+# Resolve DB connection settings (env -> backend/.env -> defaults)
+DB_HOST="${PGHOST:-localhost}"
+DB_PORT="${PGPORT:-5432}"
+DB_USER="${PGUSER:-postgres}"
+DB_NAME="${PGDATABASE:-photomarket}"
+DB_PASS="${PGPASSWORD:-}"
+
+DB_URL="${DATABASE_URL:-}"
+if [[ -z "$DB_URL" && -f "backend/.env" ]]; then
+    DB_URL=$(grep -E '^DATABASE_URL=' backend/.env | head -n 1 | cut -d= -f2-)
+fi
+
+# Strip surrounding quotes if present
+DB_URL="${DB_URL%\"}"
+DB_URL="${DB_URL#\"}"
+
+# Parse DATABASE_URL if available
+if [[ -n "$DB_URL" ]]; then
+    proto_removed="${DB_URL#*://}"
+    host_and_db="${proto_removed#*@}"
+
+    if [[ "$proto_removed" == *"@"* ]]; then
+        creds="${proto_removed%@*}"
+        if [[ "$creds" == *":"* ]]; then
+            db_user="${creds%%:*}"
+            db_pass="${creds#*:}"
+        else
+            db_user="$creds"
+        fi
+    fi
+
+    hostport="${host_and_db%%/*}"
+    db_name="${host_and_db#*/}"
+    db_name="${db_name%%\?*}"
+
+    if [[ -n "${db_user:-}" ]]; then DB_USER="$db_user"; fi
+    if [[ -n "${db_pass:-}" ]]; then DB_PASS="$db_pass"; fi
+    if [[ -n "$db_name" ]]; then DB_NAME="$db_name"; fi
+
+    if [[ "$hostport" == *":"* ]]; then
+        DB_HOST="${hostport%%:*}"
+        DB_PORT="${hostport#*:}"
+    elif [[ -n "$hostport" ]]; then
+        DB_HOST="$hostport"
+    fi
+fi
+
+echo "ℹ️  Using DB connection: ${DB_USER}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+echo ""
+
 # Check if PostgreSQL is running
 echo "📊 Step 1: Checking PostgreSQL..."
 if command -v pg_isready &> /dev/null; then
-    if pg_isready -q; then
+    if PGPASSWORD="$DB_PASS" pg_isready -q -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER"; then
         echo "✅ PostgreSQL is running"
     else
         echo "❌ PostgreSQL is not running"
@@ -31,20 +81,21 @@ echo ""
 # Check if database exists
 echo "🗄️  Step 2: Checking database..."
 if command -v psql &> /dev/null; then
-    if psql -U postgres -lqt | cut -d \| -f 1 | grep -qw photomarket; then
-        echo "✅ Database 'photomarket' exists"
+    PSQL_BASE=(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER")
+    if PGPASSWORD="$DB_PASS" "${PSQL_BASE[@]}" -d postgres -lqt | cut -d \| -f 1 | tr -d ' ' | grep -qw "$DB_NAME"; then
+        echo "✅ Database '${DB_NAME}' exists"
     else
-        echo "⚠️  Database 'photomarket' does not exist"
+        echo "⚠️  Database '${DB_NAME}' does not exist"
         echo ""
         read -p "Create database now? (y/n) " -n 1 -r
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
-            psql -U postgres -c "CREATE DATABASE photomarket;"
+            PGPASSWORD="$DB_PASS" "${PSQL_BASE[@]}" -d postgres -c "CREATE DATABASE \"${DB_NAME}\";"
             echo "✅ Database created"
         else
             echo "❌ Database required. Please create manually:"
-            echo "   psql -U postgres"
-            echo "   CREATE DATABASE photomarket;"
+            echo "   psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d postgres"
+            echo "   CREATE DATABASE ${DB_NAME};"
             exit 1
         fi
     fi
@@ -145,11 +196,11 @@ END
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     # Linux
     if command -v gnome-terminal &> /dev/null; then
-        gnome-terminal -- bash -c "cd $PWD/backend && npm run dev; exec bash"
-        gnome-terminal -- bash -c "cd $PWD && npm run dev; exec bash"
+        gnome-terminal -- bash -c "cd \"$PWD/backend\" && npm run dev; exec bash"
+        gnome-terminal -- bash -c "cd \"$PWD\" && npm run dev; exec bash"
     elif command -v konsole &> /dev/null; then
-        konsole -e "cd $PWD/backend && npm run dev"
-        konsole -e "cd $PWD && npm run dev"
+        konsole -e bash -c "cd \"$PWD/backend\" && npm run dev"
+        konsole -e bash -c "cd \"$PWD\" && npm run dev"
     else
         echo "⚠️  Could not detect terminal emulator"
         echo ""

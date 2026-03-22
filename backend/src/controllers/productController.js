@@ -66,8 +66,16 @@ export const getProducts = async (req, res, next) => {
       type: product.type.toLowerCase(),
       categories: product.categories,
       tags: product.tags,
-      previewImage: product.previewImage,
-      bundleImages: product.bundleImages,
+      previewImages: {
+        HD: product.previewImageHD,
+        FullHD: product.previewImageFullHD,
+        '4K': product.previewImage4K,
+      },
+      bundlePreviews: {
+        HD: product.bundlePreviewsHD,
+        FullHD: product.bundlePreviewsFullHD,
+        '4K': product.bundlePreviews4K,
+      },
       orientation: product.orientation.toLowerCase(),
       uploadDate: product.uploadDate.toISOString().split('T')[0],
       popularity: product.popularity,

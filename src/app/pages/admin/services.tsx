@@ -27,7 +27,7 @@ import {
 import { Badge } from '../../components/ui/badge';
 import { toast } from 'sonner';
 import { Plus, Edit, Trash2, GripVertical } from 'lucide-react';
-import { getToken } from '../../lib/auth';
+import { getToken } from '../../services/api';
 
 interface Service {
   id: string;

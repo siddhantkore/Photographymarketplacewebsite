@@ -6,7 +6,7 @@ import { Textarea } from '../../components/ui/textarea';
 import { Card } from '../../components/ui/card';
 import { toast } from 'sonner';
 import { Save, Settings } from 'lucide-react';
-import { getToken } from '../../lib/auth';
+import { getToken } from '../../services/api';
 
 interface SiteConfig {
   phoneNumber: string;
