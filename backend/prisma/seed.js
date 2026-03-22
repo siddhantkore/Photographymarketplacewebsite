@@ -1,97 +1,55 @@
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+const adminEmail = process.env.ADMIN_EMAIL || 'admin@gmail.com';
+const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+const userEmail = process.env.USER_EMAIL || 'john.doe@example.com';
+const userPassword = process.env.USER_PASSWORD || 'password123';
+
+async function upsertUser({ email, name, password, role }) {
+  const hashedPassword = await bcrypt.hash(password, 12);
+  await prisma.user.upsert({
+    where: { email },
+    update: {
+      name,
+      role,
+      password: hashedPassword,
+    },
+    create: {
+      name,
+      email,
+      password: hashedPassword,
+      role,
+    },
+  });
+}
+
 async function main() {
-  console.log('🌱 Starting database seeding...');
-
-  // Create admin user
-  const adminPassword = await bcrypt.hash('admin', 12);
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@photomarket.com' },
-    update: {},
-    create: {
-      name: 'Admin',
-      email: 'admin@photomarket.com',
-      password: adminPassword,
-      role: 'ADMIN',
-    },
+  await upsertUser({
+    email: adminEmail,
+    name: 'Admin',
+    password: adminPassword,
+    role: 'ADMIN',
   });
-  console.log('✅ Admin user created');
 
-  // Create test user
-  const userPassword = await bcrypt.hash('password123', 12);
-  const user = await prisma.user.upsert({
-    where: { email: 'john.doe@example.com' },
-    update: {},
-    create: {
-      name: 'John Doe',
-      email: 'john.doe@example.com',
-      password: userPassword,
-      role: 'USER',
-    },
+  await upsertUser({
+    email: userEmail,
+    name: 'John Doe',
+    password: userPassword,
+    role: 'USER',
   });
-  console.log('✅ Test user created');
 
-  // Create categories
-  const categories = [
-    {
-      name: 'Wildlife',
-      slug: 'wildlife',
-      image: 'https://images.unsplash.com/photo-1678048632153-d961f9c37a48',
-    },
-    {
-      name: 'Nature',
-      slug: 'nature',
-      image: 'https://images.unsplash.com/photo-1717964134799-a98f497172a5',
-    },
-    {
-      name: 'Wedding',
-      slug: 'wedding',
-      image: 'https://images.unsplash.com/photo-1664463760672-8dc6d190d720',
-    },
-    {
-      name: 'Architecture',
-      slug: 'architecture',
-      image: 'https://images.unsplash.com/photo-1692818769925-6b815111c653',
-    },
-  ];
-
-  for (const cat of categories) {
-    await prisma.category.upsert({
-      where: { slug: cat.slug },
-      update: {},
-      create: cat,
-    });
-  }
-  console.log('✅ Categories created');
-
-  // Create Google Ad Settings
-  await prisma.googleAdSettings.upsert({
-    where: { id: 'default' },
-    update: {},
-    create: {
-      id: 'default',
-      adClientId: process.env.GOOGLE_ADSENSE_CLIENT_ID || '',
-      enableVignette: false,
-      enableSideRail: true,
-      enableAnchor: true,
-      vignettePlaces: ['/'],
-      sideRailPlaces: ['/', '/explore', '/blog'],
-      anchorPlaces: ['/', '/explore', '/product', '/blog'],
-      excludedPages: ['/checkout', '/cart', '/payment'],
-    },
-  });
-  console.log('✅ Google Ad settings created');
-
-  console.log('🎉 Seeding completed successfully!');
+  console.log('Seed complete.');
+  console.log(`Admin: ${adminEmail} / ${adminPassword}`);
+  console.log(`User: ${userEmail} / ${userPassword}`);
 }
 
 main()
-  .catch((e) => {
-    console.error('❌ Seeding failed:', e);
-    process.exit(1);
+  .catch((error) => {
+    console.error('Seed failed:', error);
+    process.exitCode = 1;
   })
   .finally(async () => {
     await prisma.$disconnect();
