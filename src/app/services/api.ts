@@ -258,6 +258,8 @@ export const productsApi = {
 
   create: (data: any) => apiClient.post('/products', data),
 
+  createWithFiles: (formData: FormData) => apiClient.upload('/products', formData),
+
   update: (id: string, data: any) => apiClient.put(`/products/${id}`, data),
 
   delete: (id: string) => apiClient.delete(`/products/${id}`),

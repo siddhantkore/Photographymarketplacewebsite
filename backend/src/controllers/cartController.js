@@ -1,9 +1,12 @@
 import prisma from '../config/database.js';
+import { getPreviewAccessUrl } from '../utils/storageUrl.js';
 
 const resolutionMapping = {
   HD: 'priceHD',
   'Full HD': 'priceFullHD',
   '4K': 'price4K',
+  FULL_HD: 'priceFullHD',
+  FOUR_K: 'price4K',
 };
 
 export const getCart = async (req, res, next) => {
@@ -15,13 +18,15 @@ export const getCart = async (req, res, next) => {
       },
     });
 
-    const transformedItems = cartItems.map((item) => ({
-      productId: item.productId,
-      title: item.product.title,
-      previewImage: item.product.previewImage,
-      resolution: item.resolution.replace('_', ' '),
-      price: item.price,
-    }));
+    const transformedItems = await Promise.all(
+      cartItems.map(async (item) => ({
+        productId: item.productId,
+        title: item.product.title,
+        previewImage: await getPreviewAccessUrl(item.product.previewImageHD),
+        resolution: item.resolution.replace('_', ' '),
+        price: item.price,
+      }))
+    );
 
     const total = transformedItems.reduce((sum, item) => sum + item.price, 0);
 
@@ -102,13 +107,15 @@ export const addToCart = async (req, res, next) => {
       include: { product: true },
     });
 
-    const transformedItems = cartItems.map((item) => ({
-      productId: item.productId,
-      title: item.product.title,
-      previewImage: item.product.previewImage,
-      resolution: item.resolution.replace('_', ' '),
-      price: item.price,
-    }));
+    const transformedItems = await Promise.all(
+      cartItems.map(async (item) => ({
+        productId: item.productId,
+        title: item.product.title,
+        previewImage: await getPreviewAccessUrl(item.product.previewImageHD),
+        resolution: item.resolution.replace('_', ' '),
+        price: item.price,
+      }))
+    );
 
     const total = transformedItems.reduce((sum, item) => sum + item.price, 0);
 
@@ -147,13 +154,15 @@ export const removeFromCart = async (req, res, next) => {
       include: { product: true },
     });
 
-    const transformedItems = cartItems.map((item) => ({
-      productId: item.productId,
-      title: item.product.title,
-      previewImage: item.product.previewImage,
-      resolution: item.resolution.replace('_', ' '),
-      price: item.price,
-    }));
+    const transformedItems = await Promise.all(
+      cartItems.map(async (item) => ({
+        productId: item.productId,
+        title: item.product.title,
+        previewImage: await getPreviewAccessUrl(item.product.previewImageHD),
+        resolution: item.resolution.replace('_', ' '),
+        price: item.price,
+      }))
+    );
 
     const total = transformedItems.reduce((sum, item) => sum + item.price, 0);
 

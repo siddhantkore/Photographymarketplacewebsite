@@ -2,6 +2,25 @@ import prisma from '../config/database.js';
 import razorpay from '../config/razorpay.js';
 import crypto from 'crypto';
 import storageProvider, { ACCESS_TYPES, STORAGE_BUCKETS } from '../storage/index.js';
+import { getPreviewAccessUrl } from '../utils/storageUrl.js';
+import { getSignedUrlDuration } from './siteConfigController.js';
+
+const resolutionFieldMap = {
+  HD: {
+    single: 'originalFileHD',
+    bundle: 'bundleOriginalsHD',
+  },
+  FULL_HD: {
+    single: 'originalFileFullHD',
+    bundle: 'bundleOriginalsFullHD',
+  },
+  FOUR_K: {
+    single: 'originalFile4K',
+    bundle: 'bundleOriginals4K',
+  },
+};
+
+const normalizeResolution = (resolution) => String(resolution || '').replace(' ', '_').toUpperCase();
 
 export const createOrder = async (req, res, next) => {
   try {
@@ -235,20 +254,22 @@ export const getOrderById = async (req, res, next) => {
       id: order.id,
       userId: order.userId,
       user: order.user,
-      itemsDetail: order.items.map((item) => ({
-        product: {
-          id: item.product.id,
-          title: item.product.title,
-          type: item.product.type.toLowerCase(),
-          previewImage: item.product.previewImage,
-        },
-        resolution: item.resolution.replace('_', ' '),
-        price: item.price,
-        downloadUrl:
-          order.status === 'COMPLETED'
-            ? `/api/v1/downloads/product/${order.id}/${item.productId}/${item.resolution.replace('_', ' ')}`
-            : null,
-      })),
+      itemsDetail: await Promise.all(
+        order.items.map(async (item) => ({
+          product: {
+            id: item.product.id,
+            title: item.product.title,
+            type: item.product.type.toLowerCase(),
+            previewImage: await getPreviewAccessUrl(item.product.previewImageHD),
+          },
+          resolution: item.resolution.replace('_', ' '),
+          price: item.price,
+          downloadUrl:
+            order.status === 'COMPLETED'
+              ? `/api/v1/downloads/product/${order.id}/${item.productId}/${item.resolution.replace('_', ' ')}`
+              : null,
+        }))
+      ),
       total: order.total,
       status: order.status.toLowerCase(),
       paymentId: order.paymentId,
@@ -343,6 +364,15 @@ export const getAllOrders = async (req, res, next) => {
 export const generateDownloadLink = async (req, res, next) => {
   try {
     const { orderId, productId, resolution } = req.body;
+    const normalizedResolution = normalizeResolution(resolution);
+    const resolutionFields = resolutionFieldMap[normalizedResolution];
+
+    if (!resolutionFields) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid resolution. Use HD, Full HD, or 4K.',
+      });
+    }
 
     // Get order
     const order = await prisma.order.findUnique({
@@ -351,7 +381,7 @@ export const generateDownloadLink = async (req, res, next) => {
         items: {
           where: {
             productId,
-            resolution: resolution.replace(' ', '_').toUpperCase(),
+            resolution: normalizedResolution,
           },
           include: {
             product: true,
@@ -390,22 +420,38 @@ export const generateDownloadLink = async (req, res, next) => {
 
     const item = order.items[0];
     const product = item.product;
+    const signedUrlDuration = await getSignedUrlDuration();
+    const isBundle = product.type === 'BUNDLE';
 
-    // Get stored original file key
-    const fileKey = product.originalFiles[0]; // For bundles, this would be a zip file
+    const fileKeys = isBundle
+      ? product[resolutionFields.bundle] || []
+      : [product[resolutionFields.single]].filter(Boolean);
 
-    // Generate signed URL (valid for 1 hour)
-    const downloadUrl = await storageProvider.generateAccessUrl(fileKey, {
-      bucketType: STORAGE_BUCKETS.ORIGINAL,
-      access: ACCESS_TYPES.SIGNED,
-      expiresIn: 3600,
-    });
-    const expiresAt = new Date(Date.now() + 3600 * 1000);
+    if (fileKeys.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No downloadable files found for selected resolution',
+      });
+    }
+
+    const downloadUrls = await Promise.all(
+      fileKeys.map((fileKey) =>
+        storageProvider.generateAccessUrl(fileKey, {
+          bucketType: STORAGE_BUCKETS.ORIGINAL,
+          access: ACCESS_TYPES.SIGNED,
+          expiresIn: signedUrlDuration,
+        })
+      )
+    );
+    const expiresAt = new Date(Date.now() + signedUrlDuration * 1000);
 
     res.json({
       success: true,
       data: {
-        downloadUrl,
+        downloadUrl: downloadUrls[0],
+        downloadUrls,
+        isBundle,
+        resolution: normalizedResolution.replace('_', ' '),
         expiresAt: expiresAt.toISOString(),
       },
     });
