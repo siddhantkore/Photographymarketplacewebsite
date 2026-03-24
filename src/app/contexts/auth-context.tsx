@@ -15,7 +15,9 @@ interface AuthContextType {
   isAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<{ requiresEmailVerification: boolean; email: string }>;
+  verifyEmailOtp: (email: string, otp: string) => Promise<void>;
+  resendVerificationOtp: (email: string) => Promise<void>;
   loading: boolean;
 }
 
@@ -94,23 +96,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (name: string, email: string, password: string) => {
     try {
       const response: any = await authApi.register({ name, email, password });
-      
-      if (response.success && response.data) {
-        const { user: userData, tokens } = response.data;
-        
-        setUser({
-          id: userData.id,
-          name: userData.name,
-          email: userData.email,
-          role: userData.role.toLowerCase() as 'user' | 'admin',
-          joinDate: userData.joinDate,
-        });
 
-        setTokens(tokens.accessToken, tokens.refreshToken);
+      if (response.success && response.data) {
+        return {
+          requiresEmailVerification: Boolean(response.data.requiresEmailVerification),
+          email: response.data.user?.email || email,
+        };
       }
+
+      throw new Error(response?.message || 'Registration failed');
     } catch (error) {
       console.error('Registration failed:', error);
       throw error;
+    }
+  };
+
+  const verifyEmailOtp = async (email: string, otp: string) => {
+    const response: any = await authApi.verifyEmailOtp({ email, otp });
+    if (!response?.success || !response?.data?.tokens || !response?.data?.user) {
+      throw new Error(response?.message || 'OTP verification failed');
+    }
+
+    const { user: userData, tokens } = response.data;
+    setUser({
+      id: userData.id,
+      name: userData.name,
+      email: userData.email,
+      role: userData.role.toLowerCase() as 'user' | 'admin',
+      joinDate: userData.joinDate,
+    });
+    setTokens(tokens.accessToken, tokens.refreshToken);
+  };
+
+  const resendVerificationOtp = async (email: string) => {
+    const response: any = await authApi.resendVerificationOtp(email);
+    if (!response?.success) {
+      throw new Error(response?.message || 'Failed to resend OTP');
     }
   };
 
@@ -123,6 +144,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         register,
+        verifyEmailOtp,
+        resendVerificationOtp,
         loading,
       }}
     >

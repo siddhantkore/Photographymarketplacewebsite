@@ -2,7 +2,7 @@ import { useParams, Link, useNavigate } from 'react-router';
 import { useEffect, useState } from 'react';
 import { useCart } from '../contexts/cart-context';
 import { useAuth } from '../contexts/auth-context';
-import { productsApi } from '../services/api';
+import { productsApi, wishlistApi } from '../services/api';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
@@ -32,6 +32,8 @@ export function ProductDetailPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [selectedResolution, setSelectedResolution] = useState<Resolution>('HD');
+  const [savingWishlist, setSavingWishlist] = useState(false);
+  const [isWishlisted, setIsWishlisted] = useState(false);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -44,16 +46,28 @@ export function ProductDetailPage() {
       setLoading(true);
 
       try {
-        const response: any = await productsApi.getById(id);
+        const [productResponse, wishlistResponse]: any = await Promise.all([
+          productsApi.getById(id),
+          isAuthenticated ? wishlistApi.get() : Promise.resolve(null),
+        ]);
 
-        if (!response?.success || !response?.data) {
+        if (!productResponse?.success || !productResponse?.data) {
           setProduct(null);
           setRelatedProducts([]);
           return;
         }
 
-        const currentProduct: Product = response.data;
+        const currentProduct: Product = productResponse.data;
         setProduct(currentProduct);
+
+        if (wishlistResponse?.success && wishlistResponse?.data?.items) {
+          const wishlistProductIds = new Set(
+            wishlistResponse.data.items.map((item: any) => item.product?.id)
+          );
+          setIsWishlisted(wishlistProductIds.has(currentProduct.id));
+        } else {
+          setIsWishlisted(false);
+        }
 
         if (currentProduct.categories.length > 0) {
           const relatedResponse: any = await productsApi.getAll({
@@ -83,7 +97,7 @@ export function ProductDetailPage() {
     };
 
     loadProduct();
-  }, [id]);
+  }, [id, isAuthenticated]);
 
   const requireAuth = () => {
     if (!isAuthenticated) {
@@ -121,6 +135,37 @@ export function ProductDetailPage() {
       window.location.href = '/cart';
     }
   };
+
+  const handleToggleWishlist = async () => {
+    if (!product) return;
+    if (requireAuth()) return;
+
+    try {
+      setSavingWishlist(true);
+      if (isWishlisted) {
+        await wishlistApi.remove(product.id);
+        setIsWishlisted(false);
+        toast.success('Removed from wishlist');
+      } else {
+        await wishlistApi.add(product.id);
+        setIsWishlisted(true);
+        toast.success('Saved to wishlist');
+      }
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to update wishlist');
+    } finally {
+      setSavingWishlist(false);
+    }
+  };
+
+  const selectedDiscount = product?.discountPercent?.[selectedResolution] || 0;
+  const selectedDisplayPrice = product?.displayPrices?.[selectedResolution];
+  const bundlePreviewByResolution =
+    selectedResolution === 'HD'
+      ? product?.bundlePreviews?.HD || []
+      : selectedResolution === 'Full HD'
+        ? product?.bundlePreviews?.FullHD || []
+        : product?.bundlePreviews?.['4K'] || [];
 
   if (loading) {
     return (
@@ -173,11 +218,6 @@ export function ProductDetailPage() {
                 alt={product.title}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="text-white/20 text-6xl font-bold transform rotate-[-30deg] select-none">
-                  PHOTOMARKET
-                </div>
-              </div>
               <div className="absolute top-4 left-4">
                 <Badge className="capitalize">
                   {product.type === 'bundle' && <Package className="w-3 h-3 mr-1" />}
@@ -185,6 +225,25 @@ export function ProductDetailPage() {
                 </Badge>
               </div>
             </div>
+
+            {product.type === 'bundle' && bundlePreviewByResolution.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-3">
+                  Bundle Files ({bundlePreviewByResolution.length}) - {selectedResolution} Preview
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {bundlePreviewByResolution.map((imageUrl, index) => (
+                    <div key={`${imageUrl}-${index}`} className="aspect-[4/3] rounded-lg overflow-hidden border border-gray-200 bg-white">
+                      <ImageWithFallback
+                        src={imageUrl}
+                        alt={`${product.title} bundle file ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-start gap-3">
@@ -266,6 +325,14 @@ export function ProductDetailPage() {
                         </Label>
                       </div>
                       <div className="font-bold text-gray-900">₹{product.prices[resolution]}</div>
+                      {product.displayPrices?.[resolution] && (product.discountPercent?.[resolution] || 0) > 0 && (
+                        <div className="text-xs text-gray-500 text-right">
+                          <div className="line-through">₹{product.displayPrices?.[resolution]}</div>
+                          <div className="text-rose-600 font-semibold">
+                            {product.discountPercent?.[resolution]}% off
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -305,21 +372,32 @@ export function ProductDetailPage() {
             </div>
 
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="gap-2">
+              <Button
+                variant={isWishlisted ? 'default' : 'outline'}
+                size="sm"
+                className="gap-2"
+                onClick={handleToggleWishlist}
+                disabled={savingWishlist}
+              >
                 <Heart className="w-4 h-4" />
-                Save
+                {savingWishlist ? 'Saving...' : isWishlisted ? 'Saved' : 'Save'}
               </Button>
               <Button variant="outline" size="sm" className="gap-2">
                 <Share2 className="w-4 h-4" />
                 Share
               </Button>
             </div>
+            {selectedDiscount > 0 && selectedDisplayPrice ? (
+              <p className="text-sm text-rose-600 mt-2">
+                {selectedDiscount}% discount applied from displayed price ₹{selectedDisplayPrice}
+              </p>
+            ) : null}
           </div>
         </div>
 
         {relatedProducts.length > 0 && (
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Related Products</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Suggested for you</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {relatedProducts.map((item) => (
                 <ProductCard key={item.id} product={item} />

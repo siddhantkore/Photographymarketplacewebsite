@@ -8,11 +8,14 @@ import { CartPage } from "./pages/cart-page";
 import { CheckoutPage } from "./pages/checkout-page";
 import { ProfilePage } from "./pages/profile-page";
 import { OrdersPage } from "./pages/orders-page";
+import { WishlistPage } from "./pages/wishlist-page";
 import { BlogListPage } from "./pages/blog-list-page";
 import { BlogDetailPage } from "./pages/blog-detail-page";
 import { ServicesPage } from "./pages/services-page";
 import { LoginPage } from "./pages/login-page";
 import { RegisterPage } from "./pages/register-page";
+import { VerifyEmailPage } from "./pages/verify-email-page";
+import { ForgotPasswordPage } from "./pages/forgot-password-page";
 import { AboutPage } from "./pages/about-page";
 import { ContactPage } from "./pages/contact-page";
 import { TermsPage } from "./pages/terms-page";
@@ -41,12 +44,15 @@ export const router = createBrowserRouter([
       { path: "cart", Component: CartPage },
       { path: "checkout", Component: CheckoutPage },
       { path: "profile", Component: ProfilePage },
+      { path: "wishlist", Component: WishlistPage },
       { path: "orders", Component: OrdersPage },
       { path: "blog", Component: BlogListPage },
       { path: "blog/:id", Component: BlogDetailPage },
       { path: "services", Component: ServicesPage },
       { path: "login", Component: LoginPage },
       { path: "register", Component: RegisterPage },
+      { path: "verify-email", Component: VerifyEmailPage },
+      { path: "forgot-password", Component: ForgotPasswordPage },
       { path: "about", Component: AboutPage },
       { path: "contact", Component: ContactPage },
       { path: "terms", Component: TermsPage },

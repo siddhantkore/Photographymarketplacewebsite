@@ -18,8 +18,14 @@ export function LoginPage() {
       await login(email, password);
       toast.success('Login successful!');
       navigate('/');
-    } catch (error) {
-      toast.error('Login failed');
+    } catch (error: any) {
+      const message = error?.message || 'Login failed';
+      if (String(message).toLowerCase().includes('verify')) {
+        toast.error('Verify your email with OTP before login');
+        navigate(`/verify-email?email=${encodeURIComponent(email)}`);
+        return;
+      }
+      toast.error(message);
     }
   };
 
@@ -28,7 +34,7 @@ export function LoginPage() {
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-          <p className="text-gray-600">Login to your PhotoMarket account</p>
+          <p className="text-gray-600">Login to your Like Photo Studio account</p>
         </div>
 
         <div className="bg-white p-8 rounded-lg shadow-sm">
@@ -61,6 +67,12 @@ export function LoginPage() {
               Login
             </Button>
           </form>
+
+          <div className="mt-4 text-right">
+            <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+              Forgot password?
+            </Link>
+          </div>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">

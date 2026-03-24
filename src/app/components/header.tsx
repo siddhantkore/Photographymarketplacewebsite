@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router';
-import { Search, ShoppingCart, User, LogOut, LayoutDashboard } from 'lucide-react';
+import { Search, ShoppingCart, User, LogOut, LayoutDashboard, Heart } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../contexts/auth-context';
 import { useCart } from '../contexts/cart-context';
@@ -35,7 +35,7 @@ export function Header() {
             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">LPS</span>
             </div>
-            <span className="text-xl font-bold text-gray-900 hidden sm:block">PhotoMarket</span>
+            <span className="text-xl font-bold text-gray-900 hidden sm:block">Like Photo Studio</span>
           </Link>
 
           {/* Search Bar */}
@@ -53,20 +53,26 @@ export function Header() {
           </form>
 
           {/* Navigation */}
-          <div className="flex items-center gap-4">
-            <Link to="/explore">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Link to="/explore" className="hidden md:block">
               <Button variant="ghost" size="sm">
                 Explore
               </Button>
             </Link>
-            <Link to="/services">
+            <Link to="/services" className="hidden lg:block">
               <Button variant="ghost" size="sm">
                 Services
               </Button>
             </Link>
-            <Link to="/blog">
+            <Link to="/blog" className="hidden lg:block">
               <Button variant="ghost" size="sm">
                 Blog
+              </Button>
+            </Link>
+
+            <Link to="/wishlist" className="relative">
+              <Button variant="ghost" size="icon">
+                <Heart className="w-5 h-5" />
               </Button>
             </Link>
 
@@ -120,6 +126,12 @@ export function Header() {
                       <Link to="/orders" className="cursor-pointer">
                         <ShoppingCart className="w-4 h-4 mr-2" />
                         My Orders
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/wishlist" className="cursor-pointer">
+                        <Heart className="w-4 h-4 mr-2" />
+                        Wishlist
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />

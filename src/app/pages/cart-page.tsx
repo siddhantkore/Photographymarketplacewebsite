@@ -1,14 +1,40 @@
 import { Link } from 'react-router';
+import { useEffect, useState } from 'react';
 import { useCart } from '../contexts/cart-context';
 import { useAuth } from '../contexts/auth-context';
 import { Button } from '../components/ui/button';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { Trash2, ShoppingBag } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
+import { productsApi } from '../services/api';
+import { ProductCard } from '../components/product-card';
 
 export function CartPage() {
   const { items, removeFromCart, getTotal } = useCart();
   const { isAuthenticated } = useAuth();
+  const [suggestedProducts, setSuggestedProducts] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const loadSuggestions = async () => {
+      try {
+        const response: any = await productsApi.getAll({
+          page: 1,
+          limit: 8,
+          sort: 'popularity',
+          order: 'desc',
+        });
+        if (response?.success && response?.data?.products) {
+          setSuggestedProducts(response.data.products);
+        }
+      } catch (error) {
+        console.error('Failed to load cart suggestions', error);
+      }
+    };
+
+    loadSuggestions();
+  }, [isAuthenticated]);
 
   if (!isAuthenticated) {
     return (
@@ -139,6 +165,20 @@ export function CartPage() {
             </div>
           </div>
         </div>
+
+        {suggestedProducts.length > 0 && (
+          <section className="mt-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-5">Suggested for you</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+              {suggestedProducts
+                .filter((product) => !items.some((item) => item.productId === product.id))
+                .slice(0, 6)
+                .map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

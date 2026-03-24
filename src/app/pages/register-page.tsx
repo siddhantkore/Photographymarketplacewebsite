@@ -10,17 +10,28 @@ export function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password !== confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+
     try {
-      await register(name, email, password);
-      toast.success('Registration successful!');
-      navigate('/');
-    } catch (error) {
-      toast.error('Registration failed');
+      const result = await register(name, email, password);
+      if (result.requiresEmailVerification) {
+        toast.success('OTP sent to your email. Verify to complete signup.');
+        navigate(`/verify-email?email=${encodeURIComponent(result.email)}`);
+      } else {
+        toast.success('Registration successful!');
+        navigate('/');
+      }
+    } catch (error: any) {
+      toast.error(error?.message || 'Registration failed');
     }
   };
 
@@ -29,7 +40,7 @@ export function RegisterPage() {
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
-          <p className="text-gray-600">Join PhotoMarket today</p>
+          <p className="text-gray-600">Join Like Photo Studio today</p>
         </div>
 
         <div className="bg-white p-8 rounded-lg shadow-sm">
@@ -69,10 +80,27 @@ export function RegisterPage() {
               />
             </div>
 
+            <div>
+              <Label htmlFor="confirm-password">Confirm Password</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
             <Button type="submit" className="w-full" size="lg">
-              Register
+              Create Account
             </Button>
           </form>
+
+          <div className="mt-5 rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-900 space-y-1">
+            <p>Your privacy matters: we never sell your personal data.</p>
+            <p>Your credentials and account details are stored securely.</p>
+          </div>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
