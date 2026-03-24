@@ -1,42 +1,39 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../../components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../../components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '../../components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Badge } from '../../components/ui/badge';
 import { toast } from 'sonner';
 import { Mail, Trash2, Eye } from 'lucide-react';
-import { getToken } from '../../services/api';
+import { contactApi } from '../../services/api';
 
 interface Inquiry {
   id: string;
   name: string;
   email: string;
-  phone?: string;
+  phone?: string | null;
   subject: string;
   message: string;
   inquiryType: string;
   status: string;
+  adminTag?: string | null;
+  isNew?: boolean;
   createdAt: string;
+  updatedAt: string;
 }
+
+const statusOptions = ['NEW', 'READ', 'RESPONDED', 'CLOSED', 'PENDING', 'ONGOING', 'COMPLETED', 'NA'];
+
+const badgeVariant = (status: string) => {
+  if (status === 'NEW') return 'default';
+  if (status === 'CLOSED' || status === 'NA') return 'secondary';
+  if (status === 'COMPLETED' || status === 'RESPONDED') return 'outline';
+  if (status === 'ONGOING' || status === 'PENDING') return 'secondary';
+  return 'default';
+};
 
 export function AdminContactInquiries() {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
@@ -44,144 +41,212 @@ export function AdminContactInquiries() {
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
-
-  useEffect(() => {
-    fetchInquiries();
-  }, [statusFilter]);
+  const [tagFilter, setTagFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [stats, setStats] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
 
   const fetchInquiries = async () => {
     try {
-      const url = statusFilter === 'all'
-        ? `${import.meta.env.VITE_API_URL}/contact`
-        : `${import.meta.env.VITE_API_URL}/contact?status=${statusFilter}`;
-
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
+      setLoading(true);
+      const response: any = await contactApi.getAll({
+        status: statusFilter,
+        adminTag: tagFilter,
+        search,
+        sortBy,
+        sortOrder,
+        page,
+        limit: 20,
       });
-      const data = await response.json();
-      if (data.success) {
-        setInquiries(data.data);
+
+      if (response?.success) {
+        setInquiries(response.data || []);
+        setTotalPages(response.pagination?.pages || 1);
+      } else {
+        setInquiries([]);
+        setTotalPages(1);
       }
-    } catch (error) {
-      toast.error('Failed to load inquiries');
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to load inquiries');
+      setInquiries([]);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleView = async (inquiry: Inquiry) => {
-    setSelectedInquiry(inquiry);
-    setIsDialogOpen(true);
-
-    // Mark as read if it's new
-    if (inquiry.status === 'NEW') {
-      try {
-        await fetch(`${import.meta.env.VITE_API_URL}/contact/${inquiry.id}/status`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${getToken()}`,
-          },
-          body: JSON.stringify({ status: 'READ' }),
-        });
-        fetchInquiries();
-      } catch (error) {
-        console.error('Failed to mark as read');
+  const fetchStats = async () => {
+    try {
+      const response: any = await contactApi.getStats();
+      if (response?.success) {
+        setStats(response.data);
       }
+    } catch (error) {
+      console.error('Failed to load inquiry stats', error);
     }
   };
 
-  const handleUpdateStatus = async (id: string, status: string) => {
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/contact/${id}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: JSON.stringify({ status }),
-      });
+  useEffect(() => {
+    fetchInquiries();
+  }, [statusFilter, tagFilter, sortBy, sortOrder, page]);
 
-      const data = await response.json();
-      if (data.success) {
-        toast.success('Status updated');
-        fetchInquiries();
-        if (selectedInquiry?.id === id) {
-          setSelectedInquiry({ ...selectedInquiry, status });
-        }
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setPage(1);
+      fetchInquiries();
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [search]);
+
+  const uniqueTags = useMemo(() => {
+    const tags = new Set<string>();
+    inquiries.forEach((item) => {
+      if (item.adminTag) tags.add(item.adminTag);
+    });
+    return Array.from(tags).sort((a, b) => a.localeCompare(b));
+  }, [inquiries]);
+
+  const handleView = async (inquiry: Inquiry) => {
+    setIsDialogOpen(true);
+    try {
+      const response: any = await contactApi.getById(inquiry.id);
+      if (response?.success && response?.data) {
+        setSelectedInquiry(response.data);
+      } else {
+        setSelectedInquiry(inquiry);
       }
-    } catch (error) {
-      toast.error('Failed to update status');
+      await fetchInquiries();
+      await fetchStats();
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to load inquiry details');
+      setSelectedInquiry(inquiry);
+    }
+  };
+
+  const handleUpdate = async (id: string, payload: { status?: string; adminTag?: string }) => {
+    try {
+      setSaving(true);
+      const response: any = await contactApi.updateStatus(id, payload);
+      if (response?.success) {
+        toast.success('Inquiry updated');
+        await fetchInquiries();
+        await fetchStats();
+        if (selectedInquiry?.id === id) {
+          setSelectedInquiry((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  status: payload.status || prev.status,
+                  adminTag: payload.adminTag !== undefined ? payload.adminTag || null : prev.adminTag,
+                }
+              : prev
+          );
+        }
+      } else {
+        toast.error(response?.message || 'Failed to update inquiry');
+      }
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to update inquiry');
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this inquiry?')) return;
-
+    if (!window.confirm('Delete this inquiry?')) return;
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/contact/${id}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
-      });
-
-      const data = await response.json();
-      if (data.success) {
+      const response: any = await contactApi.delete(id);
+      if (response?.success) {
         toast.success('Inquiry deleted');
-        fetchInquiries();
+        await fetchInquiries();
+        await fetchStats();
         setIsDialogOpen(false);
+      } else {
+        toast.error(response?.message || 'Failed to delete inquiry');
       }
-    } catch (error) {
-      toast.error('Failed to delete inquiry');
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to delete inquiry');
     }
   };
-
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'NEW': return 'default';
-      case 'READ': return 'secondary';
-      case 'RESPONDED': return 'default';
-      case 'CLOSED': return 'outline';
-      default: return 'secondary';
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-8">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Contact Inquiries</h1>
-          <p className="text-gray-600 mt-1">Manage contact form submissions</p>
+          <p className="text-gray-600 mt-1">Track new inquiries with tags, filters, and status workflows</p>
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Inquiries</SelectItem>
-            <SelectItem value="NEW">New</SelectItem>
-            <SelectItem value="READ">Read</SelectItem>
-            <SelectItem value="RESPONDED">Responded</SelectItem>
-            <SelectItem value="CLOSED">Closed</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="text-sm text-gray-600">
+          New: <span className="font-semibold">{stats?.byStatus?.new ?? 0}</span>
+        </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-white p-4 rounded-lg border border-gray-100 shadow-sm space-y-3">
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name, email, subject, or message"
+        />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setPage(1); }}>
+            <SelectTrigger>
+              <SelectValue placeholder="Status filter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              {statusOptions.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {status}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={tagFilter} onValueChange={(value) => { setTagFilter(value); setPage(1); }}>
+            <SelectTrigger>
+              <SelectValue placeholder="Tag filter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All tags</SelectItem>
+              {uniqueTags.map((tag) => (
+                <SelectItem key={tag} value={tag}>
+                  {tag}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger>
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="createdAt">Created date</SelectItem>
+              <SelectItem value="updatedAt">Updated date</SelectItem>
+              <SelectItem value="status">Status</SelectItem>
+              <SelectItem value="name">Name</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={sortOrder} onValueChange={(value: 'asc' | 'desc') => setSortOrder(value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Sort order" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="desc">Descending</SelectItem>
+              <SelectItem value="asc">Ascending</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg shadow overflow-x-auto border border-gray-100">
         <Table>
           <TableHeader>
             <TableRow>
@@ -190,119 +255,150 @@ export function AdminContactInquiries() {
               <TableHead>Subject</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Tag</TableHead>
               <TableHead>Date</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {inquiries.map((inquiry) => (
-              <TableRow key={inquiry.id} className={inquiry.status === 'NEW' ? 'bg-blue-50' : ''}>
-                <TableCell className="font-medium">{inquiry.name}</TableCell>
-                <TableCell>{inquiry.email}</TableCell>
-                <TableCell>{inquiry.subject}</TableCell>
-                <TableCell>
-                  <Badge variant="outline" className="capitalize">
-                    {inquiry.inquiryType}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={getStatusBadgeVariant(inquiry.status)}>
-                    {inquiry.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>{new Date(inquiry.createdAt).toLocaleDateString()}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleView(inquiry)}
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(inquiry.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center text-gray-500 py-8">
+                  Loading inquiries...
                 </TableCell>
               </TableRow>
-            ))}
+            ) : inquiries.length > 0 ? (
+              inquiries.map((inquiry) => (
+                <TableRow key={inquiry.id} className={inquiry.isNew ? 'bg-blue-50/50' : ''}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      {inquiry.isNew && <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                      <span>{inquiry.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>{inquiry.email}</TableCell>
+                  <TableCell className="max-w-[220px] truncate">{inquiry.subject}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="capitalize">
+                      {inquiry.inquiryType}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={badgeVariant(inquiry.status) as any}>{inquiry.status}</Badge>
+                  </TableCell>
+                  <TableCell>{inquiry.adminTag || '-'}</TableCell>
+                  <TableCell>{new Date(inquiry.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => handleView(inquiry)}>
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(inquiry.id)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center text-gray-500 py-8">
+                  No inquiries found.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
 
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-3">
+          <Button variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+            Previous
+          </Button>
+          <span className="text-sm text-gray-600">
+            Page {page} of {totalPages}
+          </span>
+          <Button variant="outline" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+            Next
+          </Button>
+        </div>
+      )}
+
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[680px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Inquiry Details</DialogTitle>
           </DialogHeader>
           {selectedInquiry && (
-            <div className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4 mt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Name</label>
+                  <Label>Name</Label>
                   <p className="text-gray-900">{selectedInquiry.name}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Email</label>
+                  <Label>Email</Label>
                   <p className="text-gray-900">{selectedInquiry.email}</p>
                 </div>
               </div>
-
               {selectedInquiry.phone && (
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Phone</label>
+                  <Label>Phone</Label>
                   <p className="text-gray-900">{selectedInquiry.phone}</p>
                 </div>
               )}
-
               <div>
-                <label className="text-sm font-medium text-gray-700">Subject</label>
+                <Label>Subject</Label>
                 <p className="text-gray-900">{selectedInquiry.subject}</p>
               </div>
-
               <div>
-                <label className="text-sm font-medium text-gray-700">Message</label>
+                <Label>Message</Label>
                 <div className="bg-gray-50 p-4 rounded-lg mt-1">
                   <p className="text-gray-900 whitespace-pre-wrap">{selectedInquiry.message}</p>
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Type</label>
-                  <Badge variant="outline" className="capitalize mt-1">
-                    {selectedInquiry.inquiryType}
-                  </Badge>
+                  <Label>Status</Label>
+                  <Select
+                    value={selectedInquiry.status}
+                    onValueChange={(value) => handleUpdate(selectedInquiry.id, { status: value })}
+                    disabled={saving}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {statusOptions.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {status}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Date</label>
-                  <p className="text-gray-900">{new Date(selectedInquiry.createdAt).toLocaleString()}</p>
+                  <Label htmlFor="inquiry-tag">Admin Tag (one word)</Label>
+                  <Input
+                    id="inquiry-tag"
+                    value={selectedInquiry.adminTag || ''}
+                    onChange={(e) =>
+                      setSelectedInquiry((prev) =>
+                        prev ? { ...prev, adminTag: e.target.value.replace(/\s+/g, '') } : prev
+                      )
+                    }
+                    onBlur={() =>
+                      handleUpdate(selectedInquiry.id, {
+                        adminTag: (selectedInquiry.adminTag || '').trim() || '',
+                      })
+                    }
+                    placeholder="pending, completed, ongoing, NA"
+                    maxLength={32}
+                    disabled={saving}
+                  />
                 </div>
               </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700 block mb-2">Update Status</label>
-                <Select
-                  value={selectedInquiry.status}
-                  onValueChange={(v) => handleUpdateStatus(selectedInquiry.id, v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="NEW">New</SelectItem>
-                    <SelectItem value="READ">Read</SelectItem>
-                    <SelectItem value="RESPONDED">Responded</SelectItem>
-                    <SelectItem value="CLOSED">Closed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
               <div className="flex gap-3 justify-end pt-4 border-t">
                 <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Close
