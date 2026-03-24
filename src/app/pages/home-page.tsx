@@ -17,6 +17,7 @@ import {
 
 export function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,7 +26,7 @@ export function HomePage() {
       setLoading(true);
 
       try {
-        const [productsResponse, categoriesResponse]: any = await Promise.all([
+        const [productsResponse, categoriesResponse, featuredResponse]: any = await Promise.all([
           productsApi.getAll({
             page: 1,
             limit: 30,
@@ -33,6 +34,13 @@ export function HomePage() {
             order: 'desc',
           }),
           categoriesApi.getAll({ status: 'active' }),
+          productsApi.getAll({
+            page: 1,
+            limit: 6,
+            featured: true,
+            sort: 'uploadDate',
+            order: 'desc',
+          }),
         ]);
 
         if (productsResponse?.success && productsResponse?.data?.products) {
@@ -46,10 +54,17 @@ export function HomePage() {
         } else {
           setCategories([]);
         }
+
+        if (featuredResponse?.success && featuredResponse?.data?.products) {
+          setFeaturedProducts(featuredResponse.data.products);
+        } else {
+          setFeaturedProducts([]);
+        }
       } catch (error) {
         console.error('Failed to load homepage data:', error);
         setProducts([]);
         setCategories([]);
+        setFeaturedProducts([]);
       } finally {
         setLoading(false);
       }
@@ -58,7 +73,7 @@ export function HomePage() {
     loadHomeData();
   }, []);
 
-  const featuredProducts = useMemo(() => products.slice(0, 3), [products]);
+  const heroFeaturedProducts = useMemo(() => featuredProducts.slice(0, 3), [featuredProducts]);
   const latestProducts = useMemo(() => products.slice(0, 4), [products]);
   const popularProducts = useMemo(
     () => [...products].sort((a, b) => b.popularity - a.popularity).slice(0, 4),
@@ -71,10 +86,10 @@ export function HomePage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           <div className="lg:col-span-3 space-y-12">
             <section>
-              {featuredProducts.length > 0 ? (
+              {heroFeaturedProducts.length > 0 ? (
                 <Carousel className="w-full">
                   <CarouselContent>
-                    {featuredProducts.map((product) => (
+                    {heroFeaturedProducts.map((product) => (
                       <CarouselItem key={product.id}>
                         <Link to={`/product/${product.id}`}>
                           <div className="relative h-[400px] md:h-[500px] rounded-xl overflow-hidden bg-gray-900">
@@ -84,12 +99,6 @@ export function HomePage() {
                               className="w-full h-full object-cover opacity-70"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                              <div className="text-white/10 text-6xl md:text-8xl font-bold transform rotate-[-30deg] select-none">
-                                PHOTOMARKET
-                              </div>
-                            </div>
-
                             <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10 text-white">
                               <div className="max-w-2xl">
                                 <div className="text-sm font-semibold mb-2 text-blue-400">

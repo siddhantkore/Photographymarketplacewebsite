@@ -19,8 +19,24 @@ export interface Product {
     'Full HD': number;
     '4K': number;
   };
+  displayPrices?: {
+    HD?: number | null;
+    'Full HD'?: number | null;
+    '4K'?: number | null;
+  };
+  discountPercent?: {
+    HD?: number;
+    'Full HD'?: number;
+    '4K'?: number;
+  };
+  featured?: boolean;
   status: 'active' | 'inactive';
   filesCount?: number;
+  bundlePreviews?: {
+    HD?: string[];
+    FullHD?: string[];
+    '4K'?: string[];
+  };
 }
 
 export interface Category {
