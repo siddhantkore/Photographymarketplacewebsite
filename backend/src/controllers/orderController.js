@@ -655,7 +655,13 @@ export const getAllOrders = async (req, res, next) => {
     const take = parseInt(limit, 10);
 
     const where = {};
-    if (status) where.status = String(status).toUpperCase();
+    const normalizedStatus = String(status || '').trim().toUpperCase();
+    if (!normalizedStatus) {
+      // Admin listing defaults to completed purchases only.
+      where.status = 'COMPLETED';
+    } else if (normalizedStatus !== 'ALL') {
+      where.status = normalizedStatus;
+    }
     if (userId) where.userId = String(userId);
     if (startDate || endDate) {
       where.createdAt = {};
@@ -702,10 +708,16 @@ export const getAllOrders = async (req, res, next) => {
       failedOrders: statusCounts.find((s) => s.status === 'FAILED')?._count._all || 0,
     };
 
+    const transformedOrders = orders.map((order) => ({
+      ...order,
+      status: order.status.toLowerCase(),
+      itemsCount: order.items.length,
+    }));
+
     res.json({
       success: true,
       data: {
-        orders,
+        orders: transformedOrders,
         pagination: {
           currentPage: parseInt(page, 10),
           totalPages: Math.ceil(total / take),
