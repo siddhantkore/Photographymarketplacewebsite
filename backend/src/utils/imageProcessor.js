@@ -47,7 +47,7 @@ async function resizeToPreset(imageBuffer, preset, quality) {
 
 function buildDiagonalTextWatermarkSvg(width, height, options) {
   const {
-    text = 'PHOTOMARKET',
+    text = 'LIKE PHOTO STUDIO',
     opacity = 30,
   } = options;
 
@@ -194,7 +194,7 @@ export async function validateImage(fileBuffer, config = {}) {
 export async function applyWatermark(imageBuffer, options = {}) {
   const {
     type = 'text',
-    text = 'PHOTOMARKET',
+    text = 'LIKE PHOTO STUDIO',
     opacity = 30,
     imageBuffer: watermarkImageBuffer,
   } = options;
@@ -267,7 +267,7 @@ export async function processImageForMarketplace(imageBuffer, config = {}) {
     originalQuality = 92,
     watermark = {
       type: 'text',
-      text: 'PHOTOMARKET',
+      text: 'LIKE PHOTO STUDIO',
       opacity: 30,
       position: 'center',
     },

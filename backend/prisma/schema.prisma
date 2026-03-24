@@ -346,10 +346,10 @@ model EmailOtp {
 model SiteConfig {
   id                  String   @id @default(uuid())
   phoneNumber         String   @default("+91 98765 43210")
-  email               String   @default("info@photomarket.com")
+  email               String   @default("info@likephotostudio.com")
   address             String?
   signedUrlDuration   Int      @default(3600) // Duration in seconds (default 1 hour)
-  watermarkText       String   @default("PHOTOMARKET")
+  watermarkText       String   @default("LIKE PHOTO STUDIO")
   watermarkOpacity    Int      @default(30) // 0-100
   previewQuality      Int      @default(60) // JPEG quality for preview (0-100)
   allowedImageFormats String[] @default(["jpg", "jpeg", "png", "webp"])

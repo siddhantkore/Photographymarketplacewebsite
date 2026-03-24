@@ -156,7 +156,7 @@ async function getImageProcessingConfig(overrides = {}) {
     originalQuality: 92,
     watermark: {
       type: overrides.watermarkType || (hasImageWatermark ? 'image' : 'text'),
-      text: overrides.watermarkText || config?.watermarkText || 'PHOTOMARKET',
+      text: overrides.watermarkText || config?.watermarkText || 'LIKE PHOTO STUDIO',
       opacity: Number.isFinite(watermarkOpacity) ? watermarkOpacity : 30,
       position: overrides.watermarkPosition || 'center',
       imageBuffer: overrides.watermarkImageBuffer || null,

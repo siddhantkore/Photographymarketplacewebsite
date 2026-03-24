@@ -23,10 +23,10 @@ export function AdminSiteConfig() {
   const [saving, setSaving] = useState(false);
   const [config, setConfig] = useState<SiteConfig>({
     phoneNumber: '+91 98765 43210',
-    email: 'info@photomarket.com',
+    email: 'info@likephotostudio.com',
     address: '',
     signedUrlDuration: 3600,
-    watermarkText: 'PHOTOMARKET',
+    watermarkText: 'LIKE PHOTO STUDIO',
     watermarkOpacity: 30,
     previewQuality: 60,
   });
@@ -124,7 +124,7 @@ export function AdminSiteConfig() {
                 value={config.email}
                 onChange={(e) => setConfig({ ...config, email: e.target.value })}
                 required
-                placeholder="info@photomarket.com"
+                placeholder="info@likephotostudio.com"
               />
             </div>
           </div>
@@ -151,7 +151,7 @@ export function AdminSiteConfig() {
                 value={config.watermarkText}
                 onChange={(e) => setConfig({ ...config, watermarkText: e.target.value })}
                 required
-                placeholder="PHOTOMARKET"
+                placeholder="LIKE PHOTO STUDIO"
               />
               <p className="text-sm text-gray-500 mt-1">
                 Text that will appear as watermark on preview images

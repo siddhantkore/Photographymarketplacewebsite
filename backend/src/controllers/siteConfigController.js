@@ -19,9 +19,9 @@ export const getSiteConfig = async (req, res) => {
       config = await prisma.siteConfig.create({
         data: {
           phoneNumber: '+91 98765 43210',
-          email: 'info@photomarket.com',
+          email: 'info@likephotostudio.com',
           signedUrlDuration: 3600,
-          watermarkText: 'PHOTOMARKET',
+          watermarkText: 'LIKE PHOTO STUDIO',
           watermarkOpacity: 30,
           previewQuality: 60,
         },
@@ -58,9 +58,9 @@ export const getFullSiteConfig = async (req, res) => {
       config = await prisma.siteConfig.create({
         data: {
           phoneNumber: '+91 98765 43210',
-          email: 'info@photomarket.com',
+          email: 'info@likephotostudio.com',
           signedUrlDuration: 3600,
-          watermarkText: 'PHOTOMARKET',
+          watermarkText: 'LIKE PHOTO STUDIO',
           watermarkOpacity: 30,
           previewQuality: 60,
         },
@@ -147,14 +147,14 @@ export const getWatermarkSettings = async () => {
   try {
     const config = await prisma.siteConfig.findFirst();
     return {
-      text: config?.watermarkText || 'PHOTOMARKET',
+      text: config?.watermarkText || 'LIKE PHOTO STUDIO',
       opacity: config?.watermarkOpacity || 30,
       quality: config?.previewQuality || 60,
     };
   } catch (error) {
     console.error('Error fetching watermark settings:', error);
     return {
-      text: 'PHOTOMARKET',
+      text: 'LIKE PHOTO STUDIO',
       opacity: 30,
       quality: 60,
     };

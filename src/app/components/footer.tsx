@@ -12,7 +12,7 @@ export function Footer() {
               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">LPS</span>
               </div>
-              <span className="text-xl font-bold text-white">PhotoMarket</span>
+              <span className="text-xl font-bold text-white">Like Photo Studio</span>
             </div>
             <p className="text-sm text-gray-400">
               Your premier destination for high-quality digital photography and creative assets.
@@ -106,7 +106,7 @@ export function Footer() {
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-sm text-center text-gray-400">
-          <p>&copy; 2026 PhotoMarket. All rights reserved.</p>
+          <p>&copy; 2026 Like Photo Studio. All rights reserved.</p>
         </div>
       </div>
     </footer>
