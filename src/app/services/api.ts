@@ -19,6 +19,10 @@ const safeParseJson = (text: string) => {
   }
 };
 
+const DEFAULT_GET_CACHE_TTL_MS = 30_000;
+const responseCache = new Map<string, { expiresAt: number; data: unknown }>();
+const inFlightGetRequests = new Map<string, Promise<unknown>>();
+
 // Token management
 const getToken = () => localStorage.getItem('accessToken');
 const getRefreshToken = () => localStorage.getItem('refreshToken');
@@ -137,6 +141,15 @@ class ApiClient {
     }
   }
 
+  private buildGetCacheKey(endpoint: string) {
+    return `${getToken() || 'anon'}:${endpoint}`;
+  }
+
+  private clearCache() {
+    responseCache.clear();
+    inFlightGetRequests.clear();
+  }
+
   private async refreshToken(): Promise<boolean> {
     try {
       const refreshToken = getRefreshToken();
@@ -167,26 +180,73 @@ class ApiClient {
     }
   }
 
-  async get<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: 'GET' });
+  async get<T>(endpoint: string, cacheTtlMs = 0): Promise<T> {
+    const ttl = Math.max(0, cacheTtlMs);
+    if (!ttl) {
+      return this.request<T>(endpoint, { method: 'GET' });
+    }
+
+    const cacheKey = this.buildGetCacheKey(endpoint);
+    const now = Date.now();
+    const cached = responseCache.get(cacheKey);
+    if (cached && cached.expiresAt > now) {
+      return cached.data as T;
+    }
+
+    const existingInFlight = inFlightGetRequests.get(cacheKey);
+    if (existingInFlight) {
+      return existingInFlight as Promise<T>;
+    }
+
+    const requestPromise = this.request<T>(endpoint, { method: 'GET' })
+      .then((data) => {
+        responseCache.set(cacheKey, {
+          data,
+          expiresAt: Date.now() + ttl,
+        });
+        inFlightGetRequests.delete(cacheKey);
+        return data;
+      })
+      .catch((error) => {
+        inFlightGetRequests.delete(cacheKey);
+        throw error;
+      });
+
+    inFlightGetRequests.set(cacheKey, requestPromise);
+    return requestPromise;
   }
 
   async post<T>(endpoint: string, data?: any): Promise<T> {
-    return this.request<T>(endpoint, {
+    const response = await this.request<T>(endpoint, {
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
     });
+    this.clearCache();
+    return response;
   }
 
   async put<T>(endpoint: string, data?: any): Promise<T> {
-    return this.request<T>(endpoint, {
+    const response = await this.request<T>(endpoint, {
       method: 'PUT',
       body: data ? JSON.stringify(data) : undefined,
     });
+    this.clearCache();
+    return response;
+  }
+
+  async patch<T>(endpoint: string, data?: any): Promise<T> {
+    const response = await this.request<T>(endpoint, {
+      method: 'PATCH',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+    this.clearCache();
+    return response;
   }
 
   async delete<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: 'DELETE' });
+    const response = await this.request<T>(endpoint, { method: 'DELETE' });
+    this.clearCache();
+    return response;
   }
 
   async upload<T>(endpoint: string, formData: FormData): Promise<T> {
@@ -216,9 +276,13 @@ class ApiClient {
     }
 
     if (isJson) {
-      if (responseJson !== null) return responseJson;
+      if (responseJson !== null) {
+        this.clearCache();
+        return responseJson;
+      }
       throw new Error('Invalid JSON response from server');
     }
+    this.clearCache();
     return (responseText ? (responseText as unknown as T) : ({} as T));
   }
 }
@@ -230,8 +294,23 @@ export const authApi = {
   register: (data: { name: string; email: string; password: string }) =>
     apiClient.post('/auth/register', data),
 
+  resendVerificationOtp: (email: string) =>
+    apiClient.post('/auth/verify-email/resend', { email }),
+
+  verifyEmailOtp: (data: { email: string; otp: string }) =>
+    apiClient.post('/auth/verify-email', data),
+
   login: (data: { email: string; password: string }) =>
     apiClient.post('/auth/login', data),
+
+  requestForgotPasswordOtp: (email: string) =>
+    apiClient.post('/auth/forgot-password/request', { email }),
+
+  verifyForgotPasswordOtp: (data: { email: string; otp: string }) =>
+    apiClient.post('/auth/forgot-password/verify', data),
+
+  resetPasswordWithOtp: (data: { email: string; otp: string; newPassword: string }) =>
+    apiClient.post('/auth/forgot-password/reset', data),
 
   logout: () => {
     const refreshToken = getRefreshToken();
@@ -259,12 +338,13 @@ export const productsApi = {
     sort?: string;
     order?: string;
     search?: string;
+    featured?: boolean;
   }) => {
     const query = new URLSearchParams(params as any).toString();
-    return apiClient.get(`/products${query ? `?${query}` : ''}`);
+    return apiClient.get(`/products${query ? `?${query}` : ''}`, DEFAULT_GET_CACHE_TTL_MS);
   },
 
-  getById: (id: string) => apiClient.get(`/products/${id}`),
+  getById: (id: string) => apiClient.get(`/products/${id}`, DEFAULT_GET_CACHE_TTL_MS),
 
   create: (data: any) => apiClient.post('/products', data),
 
@@ -279,7 +359,7 @@ export const productsApi = {
 export const categoriesApi = {
   getAll: (params?: { status?: string }) => {
     const query = new URLSearchParams(params as any).toString();
-    return apiClient.get(`/categories${query ? `?${query}` : ''}`);
+    return apiClient.get(`/categories${query ? `?${query}` : ''}`, DEFAULT_GET_CACHE_TTL_MS);
   },
 
   create: (data: any) => apiClient.post('/categories', data),
@@ -291,7 +371,7 @@ export const categoriesApi = {
 
 // Cart API
 export const cartApi = {
-  get: () => apiClient.get('/cart'),
+  get: () => apiClient.get('/cart', 5_000),
 
   add: (data: { productId: string; resolution: string }) =>
     apiClient.post('/cart', data),
@@ -306,7 +386,7 @@ export const cartApi = {
 export const ordersApi = {
   getAll: (params?: { page?: number; limit?: number; status?: string }) => {
     const query = new URLSearchParams(params as any).toString();
-    return apiClient.get(`/orders${query ? `?${query}` : ''}`);
+    return apiClient.get(`/orders${query ? `?${query}` : ''}`, 5_000);
   },
 
   getById: (id: string) => apiClient.get(`/orders/${id}`),
@@ -332,7 +412,7 @@ export const ordersApi = {
   // Admin
   getAllAdmin: (params?: any) => {
     const query = new URLSearchParams(params as any).toString();
-    return apiClient.get(`/orders/admin/all${query ? `?${query}` : ''}`);
+    return apiClient.get(`/orders/admin/all${query ? `?${query}` : ''}`, 5_000);
   },
 };
 
@@ -340,7 +420,7 @@ export const ordersApi = {
 export const advertisementsApi = {
   getAll: (params?: { position?: string; status?: string }) => {
     const query = new URLSearchParams(params as any).toString();
-    return apiClient.get(`/advertisements${query ? `?${query}` : ''}`);
+    return apiClient.get(`/advertisements${query ? `?${query}` : ''}`, DEFAULT_GET_CACHE_TTL_MS);
   },
 
   create: (data: any) => apiClient.post('/admin/advertisements', data),
@@ -351,10 +431,63 @@ export const advertisementsApi = {
   delete: (id: string) => apiClient.delete(`/admin/advertisements/${id}`),
 
   getGoogleAdSettings: () =>
-    apiClient.get('/advertisements/google-ads/settings'),
+    apiClient.get('/advertisements/google-ads/settings', DEFAULT_GET_CACHE_TTL_MS),
 
   updateGoogleAdSettings: (data: any) =>
     apiClient.put('/admin/advertisements/google-ads/settings', data),
+};
+
+export const blogsApi = {
+  getAll: (params?: { page?: number; limit?: number; search?: string }) => {
+    const query = new URLSearchParams(params as any).toString();
+    return apiClient.get(`/blogs${query ? `?${query}` : ''}`, DEFAULT_GET_CACHE_TTL_MS);
+  },
+
+  getById: (id: string) => apiClient.get(`/blogs/${id}`, DEFAULT_GET_CACHE_TTL_MS),
+
+  create: (data: any) => apiClient.post('/blogs', data),
+
+  update: (id: string, data: any) => apiClient.put(`/blogs/${id}`, data),
+
+  delete: (id: string) => apiClient.delete(`/blogs/${id}`),
+};
+
+export const wishlistApi = {
+  get: () => apiClient.get('/wishlist', 5_000),
+
+  add: (productId: string) => apiClient.post('/wishlist', { productId }),
+
+  remove: (productId: string) => apiClient.delete(`/wishlist/${productId}`),
+};
+
+export const adminApi = {
+  getDashboard: () => apiClient.get('/admin/dashboard', 5_000),
+};
+
+export const contactApi = {
+  submit: (data: {
+    name: string;
+    email: string;
+    phone?: string;
+    subject: string;
+    message: string;
+    inquiryType: string;
+    serviceId?: string;
+  }) => apiClient.post('/contact', data),
+
+  getAll: (params?: Record<string, string | number>) => {
+    const query = new URLSearchParams(params as any).toString();
+    return apiClient.get(`/contact${query ? `?${query}` : ''}`, 5_000);
+  },
+
+  getById: (id: string) => apiClient.get(`/contact/${id}`),
+
+  updateStatus: (id: string, data: { status?: string; adminTag?: string }) =>
+    apiClient.patch(`/contact/${id}/status`, data),
+
+  delete: (id: string) => apiClient.delete(`/contact/${id}`),
+
+  getStats: () => apiClient.get('/contact/stats', 5_000),
 };
 
 // Media API
