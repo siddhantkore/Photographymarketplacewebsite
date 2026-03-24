@@ -45,28 +45,10 @@ async function resizeToPreset(imageBuffer, preset, quality) {
     .toBuffer();
 }
 
-function getGravityFromPosition(position = 'center') {
-  const normalized = String(position).trim().toLowerCase();
-  const map = {
-    center: 'center',
-    top: 'north',
-    bottom: 'south',
-    left: 'west',
-    right: 'east',
-    top_left: 'northwest',
-    top_right: 'northeast',
-    bottom_left: 'southwest',
-    bottom_right: 'southeast',
-  };
-
-  return map[normalized] || 'center';
-}
-
-function buildCrossTextWatermarkSvg(width, height, options) {
+function buildDiagonalTextWatermarkSvg(width, height, options) {
   const {
     text = 'PHOTOMARKET',
     opacity = 30,
-    position = 'center',
   } = options;
 
   const safeText = escapeXml(text);
@@ -89,12 +71,9 @@ function buildCrossTextWatermarkSvg(width, height, options) {
     )
     .join('');
 
-  const baseSvg = `
+  const svg = `
     <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
       <g fill="rgba(255,255,255,${alpha})">
-        <g transform="translate(${centerX},${centerY}) rotate(-35) translate(${-centerX},${-centerY})">
-          ${repeatedLines}
-        </g>
         <g transform="translate(${centerX},${centerY}) rotate(35) translate(${-centerX},${-centerY})">
           ${repeatedLines}
         </g>
@@ -102,10 +81,7 @@ function buildCrossTextWatermarkSvg(width, height, options) {
     </svg>
   `;
 
-  return {
-    svg: baseSvg,
-    gravity: getGravityFromPosition(position),
-  };
+  return Buffer.from(svg);
 }
 
 async function buildImageWatermarkBuffer(imageBuffer, baseWidth, baseHeight, opacity) {
@@ -119,6 +95,44 @@ async function buildImageWatermarkBuffer(imageBuffer, baseWidth, baseHeight, opa
     })
     .ensureAlpha(clamp(opacity, 0, 100) / 100)
     .png()
+    .toBuffer();
+}
+
+async function buildDiagonalImageWatermarkComposites(preparedWatermarkBuffer, baseWidth, baseHeight) {
+  const watermarkMeta = await sharp(preparedWatermarkBuffer).metadata();
+  const watermarkWidth = Math.max(80, watermarkMeta.width || 0);
+  const watermarkHeight = Math.max(80, watermarkMeta.height || 0);
+  const stepX = Math.max(Math.round(watermarkWidth * 1.9), 160);
+  const stepY = Math.max(Math.round(watermarkHeight * 1.7), 140);
+  const slope = 0.65;
+  const overlays = [];
+
+  for (let lineStartY = baseHeight + watermarkHeight; lineStartY >= -watermarkHeight; lineStartY -= stepY) {
+    for (let x = -watermarkWidth; x <= baseWidth + watermarkWidth; x += stepX) {
+      const y = Math.round(lineStartY - x * slope);
+      if (y < -watermarkHeight || y > baseHeight + watermarkHeight) {
+        continue;
+      }
+
+      overlays.push({
+        input: preparedWatermarkBuffer,
+        left: Math.round(x),
+        top: y,
+        blend: 'over',
+      });
+    }
+  }
+
+  return overlays;
+}
+
+async function reencodeJpeg(imageBuffer, quality) {
+  return sharp(imageBuffer)
+    .jpeg({
+      quality: clamp(quality, 30, 100),
+      progressive: true,
+      mozjpeg: true,
+    })
     .toBuffer();
 }
 
@@ -175,14 +189,13 @@ export async function validateImage(fileBuffer, config = {}) {
 }
 
 /**
- * Applies watermark once on a high-resolution buffer.
+ * Applies repeated diagonal watermark overlays on an image buffer.
  */
 export async function applyWatermark(imageBuffer, options = {}) {
   const {
     type = 'text',
     text = 'PHOTOMARKET',
     opacity = 30,
-    position = 'center',
     imageBuffer: watermarkImageBuffer,
   } = options;
 
@@ -190,7 +203,7 @@ export async function applyWatermark(imageBuffer, options = {}) {
   const width = metadata.width || 1920;
   const height = metadata.height || 1080;
 
-  const composites = [];
+  let composites = [];
   if (type === 'image' && watermarkImageBuffer) {
     const preparedWatermark = await buildImageWatermarkBuffer(
       watermarkImageBuffer,
@@ -198,20 +211,14 @@ export async function applyWatermark(imageBuffer, options = {}) {
       height,
       opacity
     );
-    composites.push({
-      input: preparedWatermark,
-      gravity: getGravityFromPosition(position),
-      blend: 'over',
-    });
+    composites = await buildDiagonalImageWatermarkComposites(preparedWatermark, width, height);
   } else {
-    const { svg, gravity } = buildCrossTextWatermarkSvg(width, height, {
+    const textOverlay = buildDiagonalTextWatermarkSvg(width, height, {
       text,
       opacity,
-      position,
     });
     composites.push({
-      input: Buffer.from(svg),
-      gravity,
+      input: textOverlay,
       blend: 'over',
     });
   }
@@ -249,8 +256,8 @@ export async function generateWatermarkedPreview(imageBuffer, options = {}) {
  * Full marketplace processing pipeline for a single image.
  * - Validate
  * - Generate original variants (HD/FULL_HD/FOUR_K)
- * - Watermark once
- * - Generate preview variants from watermarked base
+ * - Apply watermark to each downloadable resolution
+ * - Generate preview variants by re-encoding the watermarked outputs
  */
 export async function processImageForMarketplace(imageBuffer, config = {}) {
   const {
@@ -277,16 +284,22 @@ export async function processImageForMarketplace(imageBuffer, config = {}) {
     throw error;
   }
 
-  const original4K = await resizeToPreset(imageBuffer, RESOLUTION_PRESETS.FOUR_K, originalQuality);
-  const originalFullHD = await resizeToPreset(imageBuffer, RESOLUTION_PRESETS.FULL_HD, originalQuality);
-  const originalHD = await resizeToPreset(imageBuffer, RESOLUTION_PRESETS.HD, originalQuality);
+  const resized4K = await resizeToPreset(imageBuffer, RESOLUTION_PRESETS.FOUR_K, originalQuality);
+  const resizedFullHD = await resizeToPreset(imageBuffer, RESOLUTION_PRESETS.FULL_HD, originalQuality);
+  const resizedHD = await resizeToPreset(imageBuffer, RESOLUTION_PRESETS.HD, originalQuality);
 
-  // Watermark is applied once on a single high-res image, then resized.
-  const watermarkedBase = await applyWatermark(original4K, watermark);
+  // Watermark is applied on each downloadable resolution to keep preview and download visuals consistent.
+  const [watermarkedOriginal4K, watermarkedOriginalFullHD, watermarkedOriginalHD] = await Promise.all([
+    applyWatermark(resized4K, watermark),
+    applyWatermark(resizedFullHD, watermark),
+    applyWatermark(resizedHD, watermark),
+  ]);
 
-  const preview4K = await resizeToPreset(watermarkedBase, RESOLUTION_PRESETS.FOUR_K, previewQuality);
-  const previewFullHD = await resizeToPreset(watermarkedBase, RESOLUTION_PRESETS.FULL_HD, previewQuality);
-  const previewHD = await resizeToPreset(watermarkedBase, RESOLUTION_PRESETS.HD, previewQuality);
+  const [preview4K, previewFullHD, previewHD] = await Promise.all([
+    reencodeJpeg(watermarkedOriginal4K, previewQuality),
+    reencodeJpeg(watermarkedOriginalFullHD, previewQuality),
+    reencodeJpeg(watermarkedOriginalHD, previewQuality),
+  ]);
 
   return {
     metadata: validation.metadata,
@@ -296,9 +309,9 @@ export async function processImageForMarketplace(imageBuffer, config = {}) {
       FOUR_K: preview4K,
     },
     originals: {
-      HD: originalHD,
-      FULL_HD: originalFullHD,
-      FOUR_K: original4K,
+      HD: watermarkedOriginalHD,
+      FULL_HD: watermarkedOriginalFullHD,
+      FOUR_K: watermarkedOriginal4K,
     },
   };
 }
@@ -364,4 +377,3 @@ export default {
   processBundleImages,
   applyWatermark,
 };
-
