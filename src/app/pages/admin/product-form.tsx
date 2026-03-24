@@ -27,6 +27,10 @@ interface ProductFormState {
   priceHD: string;
   priceFullHD: string;
   price4K: string;
+  displayPriceHD: string;
+  displayPriceFullHD: string;
+  displayPrice4K: string;
+  featured: boolean;
   status: 'active' | 'inactive';
   watermarkType: 'text' | 'image';
   watermarkText: string;
@@ -53,6 +57,10 @@ const initialFormState: ProductFormState = {
   priceHD: '',
   priceFullHD: '',
   price4K: '',
+  displayPriceHD: '',
+  displayPriceFullHD: '',
+  displayPrice4K: '',
+  featured: false,
   status: 'active',
   watermarkType: 'text',
   watermarkText: '',
@@ -92,6 +100,10 @@ export function AdminProductForm() {
             priceHD: String(product.prices?.HD ?? ''),
             priceFullHD: String(product.prices?.['Full HD'] ?? ''),
             price4K: String(product.prices?.['4K'] ?? ''),
+            displayPriceHD: String(product.displayPrices?.HD ?? ''),
+            displayPriceFullHD: String(product.displayPrices?.['Full HD'] ?? ''),
+            displayPrice4K: String(product.displayPrices?.['4K'] ?? ''),
+            featured: Boolean(product.featured),
             status: (product.status || 'active') as 'active' | 'inactive',
             watermarkType: 'text',
             watermarkText: '',
@@ -111,7 +123,7 @@ export function AdminProductForm() {
     loadProduct();
   }, [id, isEditMode]);
 
-  const handleChange = (key: keyof ProductFormState, value: string) => {
+  const handleChange = <K extends keyof ProductFormState>(key: K, value: ProductFormState[K]) => {
     setForm((prev) => ({
       ...prev,
       [key]: value,
@@ -155,6 +167,17 @@ export function AdminProductForm() {
     navigate('/admin/products');
   };
 
+  const calculateDiscount = (actual: string, shown: string) => {
+    const actualPrice = Number(actual);
+    const shownPrice = Number(shown);
+    if (!Number.isFinite(actualPrice) || !Number.isFinite(shownPrice) || shownPrice <= actualPrice) {
+      return 0;
+    }
+
+    const percent = Math.round(((shownPrice - actualPrice) / shownPrice) * 100);
+    return percent >= 2 ? percent : 0;
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
@@ -179,6 +202,12 @@ export function AdminProductForm() {
             'Full HD': Number(form.priceFullHD),
             '4K': Number(form.price4K),
           },
+          displayPrices: {
+            HD: form.displayPriceHD ? Number(form.displayPriceHD) : null,
+            'Full HD': form.displayPriceFullHD ? Number(form.displayPriceFullHD) : null,
+            '4K': form.displayPrice4K ? Number(form.displayPrice4K) : null,
+          },
+          featured: form.featured,
           status: form.status,
         };
 
@@ -198,6 +227,10 @@ export function AdminProductForm() {
         formData.append('priceHD', form.priceHD);
         formData.append('priceFullHD', form.priceFullHD);
         formData.append('price4K', form.price4K);
+        if (form.displayPriceHD) formData.append('displayPriceHD', form.displayPriceHD);
+        if (form.displayPriceFullHD) formData.append('displayPriceFullHD', form.displayPriceFullHD);
+        if (form.displayPrice4K) formData.append('displayPrice4K', form.displayPrice4K);
+        formData.append('featured', String(form.featured));
         formData.append('status', form.status);
         formData.append('watermarkType', form.watermarkType);
         if (form.watermarkText.trim()) formData.append('watermarkText', form.watermarkText.trim());
@@ -326,7 +359,7 @@ export function AdminProductForm() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="priceHD">HD Price (₹)</Label>
+              <Label htmlFor="priceHD">HD Actual Price (₹)</Label>
               <Input
                 id="priceHD"
                 type="number"
@@ -339,7 +372,7 @@ export function AdminProductForm() {
               />
             </div>
             <div>
-              <Label htmlFor="priceFullHD">Full HD Price (₹)</Label>
+              <Label htmlFor="priceFullHD">Full HD Actual Price (₹)</Label>
               <Input
                 id="priceFullHD"
                 type="number"
@@ -352,7 +385,7 @@ export function AdminProductForm() {
               />
             </div>
             <div>
-              <Label htmlFor="price4K">4K Price (₹)</Label>
+              <Label htmlFor="price4K">4K Actual Price (₹)</Label>
               <Input
                 id="price4K"
                 type="number"
@@ -363,6 +396,87 @@ export function AdminProductForm() {
                 onChange={(e) => handleChange('price4K', e.target.value)}
                 required
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="displayPriceHD">HD Display Price (₹) - Optional</Label>
+              <Input
+                id="displayPriceHD"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Optional higher shown price"
+                value={form.displayPriceHD}
+                onChange={(e) => handleChange('displayPriceHD', e.target.value)}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Discount: {calculateDiscount(form.priceHD, form.displayPriceHD)}%
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="displayPriceFullHD">Full HD Display Price (₹) - Optional</Label>
+              <Input
+                id="displayPriceFullHD"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Optional higher shown price"
+                value={form.displayPriceFullHD}
+                onChange={(e) => handleChange('displayPriceFullHD', e.target.value)}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Discount: {calculateDiscount(form.priceFullHD, form.displayPriceFullHD)}%
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="displayPrice4K">4K Display Price (₹) - Optional</Label>
+              <Input
+                id="displayPrice4K"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Optional higher shown price"
+                value={form.displayPrice4K}
+                onChange={(e) => handleChange('displayPrice4K', e.target.value)}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Discount: {calculateDiscount(form.price4K, form.displayPrice4K)}%
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label>Featured on landing page</Label>
+              <Select
+                value={form.featured ? 'yes' : 'no'}
+                onValueChange={(value) => setForm((prev) => ({ ...prev, featured: value === 'yes' }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="no">No</SelectItem>
+                  <SelectItem value="yes">Yes</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Status</Label>
+              <Select
+                value={form.status}
+                onValueChange={(value) => handleChange('status', value as 'active' | 'inactive')}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

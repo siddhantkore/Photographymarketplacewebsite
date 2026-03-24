@@ -335,6 +335,7 @@ export const productsApi = {
     type?: string;
     category?: string;
     orientation?: string;
+    status?: string;
     sort?: string;
     order?: string;
     search?: string;
