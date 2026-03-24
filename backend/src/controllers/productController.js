@@ -223,7 +223,7 @@ export const getProducts = async (req, res, next) => {
       type,
       category,
       orientation,
-      status = 'ACTIVE',
+      status,
       sort = 'uploadDate',
       order = 'desc',
       search,
@@ -247,18 +247,25 @@ export const getProducts = async (req, res, next) => {
     const safeOrder = String(order).toLowerCase() === 'asc' ? 'asc' : 'desc';
 
     const where = {};
+    const validStatuses = new Set(['ACTIVE', 'INACTIVE']);
 
     if (!req.user || req.user.role !== 'ADMIN') {
       where.status = 'ACTIVE';
-    } else if (status) {
-      where.status = String(status).toUpperCase();
+    } else if (status !== undefined && status !== null) {
+      const normalizedStatus = String(status).trim().toUpperCase();
+      if (normalizedStatus && normalizedStatus !== 'ALL' && validStatuses.has(normalizedStatus)) {
+        where.status = normalizedStatus;
+      }
     }
 
     if (type) where.type = String(type).toUpperCase();
     if (orientation) where.orientation = String(orientation).toUpperCase();
     if (category) where.categories = { has: String(category) };
-    if (featured !== undefined) {
-      where.featured = String(featured).toLowerCase() === 'true';
+    if (featured !== undefined && featured !== null) {
+      const normalizedFeatured = String(featured).trim().toLowerCase();
+      if (normalizedFeatured === 'true' || normalizedFeatured === 'false') {
+        where.featured = normalizedFeatured === 'true';
+      }
     }
 
     if (search) {

@@ -23,6 +23,31 @@ const DEFAULT_GET_CACHE_TTL_MS = 30_000;
 const responseCache = new Map<string, { expiresAt: number; data: unknown }>();
 const inFlightGetRequests = new Map<string, Promise<unknown>>();
 
+const buildQueryString = (params?: Record<string, unknown>) => {
+  if (!params) return '';
+
+  const query = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, rawValue]) => {
+    if (rawValue === undefined || rawValue === null) return;
+
+    if (Array.isArray(rawValue)) {
+      rawValue.forEach((entry) => {
+        const value = String(entry ?? '').trim();
+        if (!value || value.toLowerCase() === 'undefined' || value.toLowerCase() === 'null') return;
+        query.append(key, value);
+      });
+      return;
+    }
+
+    const value = String(rawValue).trim();
+    if (!value || value.toLowerCase() === 'undefined' || value.toLowerCase() === 'null') return;
+    query.set(key, value);
+  });
+
+  return query.toString();
+};
+
 // Token management
 const getToken = () => localStorage.getItem('accessToken');
 const getRefreshToken = () => localStorage.getItem('refreshToken');
@@ -341,7 +366,7 @@ export const productsApi = {
     search?: string;
     featured?: boolean;
   }) => {
-    const query = new URLSearchParams(params as any).toString();
+    const query = buildQueryString(params as any);
     return apiClient.get(`/products${query ? `?${query}` : ''}`, DEFAULT_GET_CACHE_TTL_MS);
   },
 
@@ -359,7 +384,7 @@ export const productsApi = {
 // Categories API
 export const categoriesApi = {
   getAll: (params?: { status?: string }) => {
-    const query = new URLSearchParams(params as any).toString();
+    const query = buildQueryString(params as any);
     return apiClient.get(`/categories${query ? `?${query}` : ''}`, DEFAULT_GET_CACHE_TTL_MS);
   },
 
@@ -386,7 +411,7 @@ export const cartApi = {
 // Orders API
 export const ordersApi = {
   getAll: (params?: { page?: number; limit?: number; status?: string }) => {
-    const query = new URLSearchParams(params as any).toString();
+    const query = buildQueryString(params as any);
     return apiClient.get(`/orders${query ? `?${query}` : ''}`, 5_000);
   },
 
@@ -412,7 +437,7 @@ export const ordersApi = {
 
   // Admin
   getAllAdmin: (params?: any) => {
-    const query = new URLSearchParams(params as any).toString();
+    const query = buildQueryString(params as any);
     return apiClient.get(`/orders/admin/all${query ? `?${query}` : ''}`, 5_000);
   },
 };
@@ -420,7 +445,7 @@ export const ordersApi = {
 // Advertisements API
 export const advertisementsApi = {
   getAll: (params?: { position?: string; status?: string }) => {
-    const query = new URLSearchParams(params as any).toString();
+    const query = buildQueryString(params as any);
     return apiClient.get(`/advertisements${query ? `?${query}` : ''}`, DEFAULT_GET_CACHE_TTL_MS);
   },
 
@@ -440,7 +465,7 @@ export const advertisementsApi = {
 
 export const blogsApi = {
   getAll: (params?: { page?: number; limit?: number; search?: string }) => {
-    const query = new URLSearchParams(params as any).toString();
+    const query = buildQueryString(params as any);
     return apiClient.get(`/blogs${query ? `?${query}` : ''}`, DEFAULT_GET_CACHE_TTL_MS);
   },
 
@@ -476,8 +501,8 @@ export const contactApi = {
     serviceId?: string;
   }) => apiClient.post('/contact', data),
 
-  getAll: (params?: Record<string, string | number>) => {
-    const query = new URLSearchParams(params as any).toString();
+  getAll: (params?: Record<string, unknown>) => {
+    const query = buildQueryString(params as any);
     return apiClient.get(`/contact${query ? `?${query}` : ''}`, 5_000);
   },
 
