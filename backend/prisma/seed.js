@@ -14,12 +14,14 @@ async function upsertUser({ email, name, password, role }) {
       name,
       role,
       password: hashedPassword,
+      isEmailVerified: true,
     },
     create: {
       name,
       email,
       password: hashedPassword,
       role,
+      isEmailVerified: true,
     },
   });
 }

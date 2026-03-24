@@ -14,6 +14,11 @@ enum UserRole {
   ADMIN
 }
 
+enum OtpPurpose {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
 enum ProductType {
   PHOTO
   BUNDLE
@@ -60,6 +65,7 @@ model User {
   name          String
   email         String    @unique
   password      String
+  isEmailVerified Boolean @default(false)
   role          UserRole  @default(USER)
   joinDate      DateTime  @default(now())
   lastLoginAt   DateTime?
@@ -69,6 +75,7 @@ model User {
   orders        Order[]
   cartItems     CartItem[]
   refreshTokens RefreshToken[]
+  wishlistItems WishlistItem[]
   
   @@index([email])
 }
@@ -119,6 +126,10 @@ model Product {
   priceHD       Float
   priceFullHD   Float
   price4K       Float
+  displayPriceHD     Float?
+  displayPriceFullHD Float?
+  displayPrice4K     Float?
+  featured      Boolean      @default(false)
   status        Status       @default(ACTIVE)
   filesCount    Int          @default(1) // Number of files in bundle (1 for single photo)
   createdAt     DateTime     @default(now())
@@ -126,10 +137,12 @@ model Product {
   
   orderItems    OrderItem[]
   cartItems     CartItem[]
+  wishlistItems WishlistItem[]
   
   @@index([type])
   @@index([status])
   @@index([popularity])
+  @@index([featured, status])
 }
 
 model Category {
@@ -292,11 +305,42 @@ model ContactInquiry {
   inquiryType String   // 'service', 'advertisement', 'general'
   serviceId   String?  // If inquiry is for a specific service
   status      String   @default("NEW") // NEW, READ, RESPONDED, CLOSED
+  adminTag    String?
+  readAt      DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
   @@index([status, createdAt])
   @@index([inquiryType])
+  @@index([adminTag])
+}
+
+model WishlistItem {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId, createdAt])
+}
+
+model EmailOtp {
+  id         String     @id @default(uuid())
+  email      String
+  code       String
+  purpose    OtpPurpose
+  expiresAt  DateTime
+  attempts   Int        @default(0)
+  verifiedAt DateTime?
+  consumedAt DateTime?
+  createdAt  DateTime   @default(now())
+
+  @@index([email, purpose, createdAt])
+  @@index([expiresAt])
 }
 
 model SiteConfig {
