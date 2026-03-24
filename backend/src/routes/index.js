@@ -11,6 +11,7 @@ import contactRoutes from './contactRoutes.js';
 import siteConfigRoutes from './siteConfigRoutes.js';
 import blogRoutes from './blogRoutes.js';
 import wishlistRoutes from './wishlistRoutes.js';
+import adminRoutes from './adminRoutes.js';
 
 const router = express.Router();
 
@@ -27,5 +28,6 @@ router.use('/contact', contactRoutes);
 router.use('/site-config', siteConfigRoutes);
 router.use('/blogs', blogRoutes);
 router.use('/wishlist', wishlistRoutes);
+router.use('/admin', adminRoutes);
 
 export default router;
