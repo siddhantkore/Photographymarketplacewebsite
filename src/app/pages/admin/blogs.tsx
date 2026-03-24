@@ -24,25 +24,33 @@ export function AdminBlogs() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {blogs.map((blog) => (
-              <tr key={blog.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 font-medium text-gray-900">{blog.title}</td>
-                <td className="px-6 py-4 text-gray-600">{blog.author}</td>
-                <td className="px-6 py-4 text-gray-600">
-                  {new Date(blog.date).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="sm">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-red-600">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+            {blogs.length > 0 ? (
+              blogs.map((blog) => (
+                <tr key={blog.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 font-medium text-gray-900">{blog.title}</td>
+                  <td className="px-6 py-4 text-gray-600">{blog.author}</td>
+                  <td className="px-6 py-4 text-gray-600">
+                    {new Date(blog.date).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm">
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-red-600">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td className="px-6 py-6 text-gray-500" colSpan={4}>
+                  No blog entries available.
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>

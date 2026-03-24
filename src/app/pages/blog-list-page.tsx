@@ -13,42 +13,48 @@ export function BlogListPage() {
           <p className="text-gray-600">Tips, tutorials, and inspiration from professional photographers</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {blogs.map((blog) => (
-            <Link key={blog.id} to={`/blog/${blog.id}`} className="group">
-              <article className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
-                <div className="aspect-video bg-gray-200 overflow-hidden">
-                  <ImageWithFallback
-                    src={blog.image}
-                    alt={blog.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-                <div className="p-6">
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {blog.tags.slice(0, 2).map((tag) => (
-                      <Badge key={tag} variant="secondary">{tag}</Badge>
-                    ))}
+        {blogs.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {blogs.map((blog) => (
+              <Link key={blog.id} to={`/blog/${blog.id}`} className="group">
+                <article className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
+                  <div className="aspect-video bg-gray-200 overflow-hidden">
+                    <ImageWithFallback
+                      src={blog.image}
+                      alt={blog.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
                   </div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
-                    {blog.title}
-                  </h2>
-                  <p className="text-gray-600 mb-4 line-clamp-2">{blog.excerpt}</p>
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
-                    <div className="flex items-center gap-1">
-                      <User className="w-4 h-4" />
-                      {blog.author}
+                  <div className="p-6">
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {blog.tags.slice(0, 2).map((tag) => (
+                        <Badge key={tag} variant="secondary">{tag}</Badge>
+                      ))}
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-4 h-4" />
-                      {new Date(blog.date).toLocaleDateString()}
+                    <h2 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                      {blog.title}
+                    </h2>
+                    <p className="text-gray-600 mb-4 line-clamp-2">{blog.excerpt}</p>
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <User className="w-4 h-4" />
+                        {blog.author}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        {new Date(blog.date).toLocaleDateString()}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </article>
-            </Link>
-          ))}
-        </div>
+                </article>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg p-8 text-center text-gray-600">
+            No blog posts available.
+          </div>
+        )}
       </div>
     </div>
   );

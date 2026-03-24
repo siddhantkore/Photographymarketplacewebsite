@@ -2,10 +2,15 @@ import { STORAGE_PROVIDERS } from './constants.js';
 import { loadStorageConfig } from './storageConfig.js';
 import S3StorageProvider from './providers/s3StorageProvider.js';
 import R2StorageProvider from './providers/r2StorageProvider.js';
+import MinioStorageProvider from './providers/minioStorageProvider.js';
 
 let providerInstance;
 
 export function createStorageProvider(config = loadStorageConfig()) {
+  if (config.provider === STORAGE_PROVIDERS.MINIO) {
+    return new MinioStorageProvider(config);
+  }
+
   if (config.provider === STORAGE_PROVIDERS.R2) {
     return new R2StorageProvider(config);
   }
@@ -25,4 +30,3 @@ export function getStorageProviderInfo() {
   const provider = getStorageProvider();
   return provider.getInfo();
 }
-

@@ -19,7 +19,7 @@ A comprehensive photography marketplace where a single admin can upload and sell
 - **Node.js + Express** REST API
 - **PostgreSQL** database with Prisma ORM
 - **JWT Authentication** with refresh tokens
-- **Pluggable Object Storage** (AWS S3 / Cloudflare R2)
+- **Pluggable Object Storage** (MinIO / AWS S3 / Cloudflare R2)
 - **Razorpay** payment integration
 - **Role-based Access Control** (User/Admin)
 - **OpenAPI 3.1.0** specification
@@ -37,11 +37,31 @@ A comprehensive photography marketplace where a single admin can upload and sell
 
 - **Node.js** v18 or higher
 - **PostgreSQL** v14 or higher
-- **Object Storage Account** (AWS S3 or Cloudflare R2)
+- **Object Storage** (MinIO recommended for local testing)
 - **Razorpay Account** (for payments)
 - **Google AdSense Account** (optional, for ads)
 
 ## 🛠️ Installation
+
+### Docker Quick Start (Recommended)
+
+Use this mode for real-data testing with Postgres + MinIO + backend + frontend:
+
+```bash
+npm run docker:up
+```
+
+Services:
+- Frontend: http://localhost:5173
+- Backend: http://localhost:5000
+- MinIO API: http://localhost:9000
+- MinIO Console: http://localhost:9001
+
+Stop all services:
+
+```bash
+npm run docker:down
+```
 
 ### 1. Clone the Repository
 
@@ -82,20 +102,19 @@ REFRESH_TOKEN_SECRET=your-refresh-token-secret-change-this-in-production
 REFRESH_TOKEN_EXPIRES_IN=7d
 
 # Storage Provider
-STORAGE_PROVIDER=s3 # s3 | r2
-PREVIEW_BUCKET_NAME=preview-assets-bucket
-ORIGINAL_BUCKET_NAME=original-assets-bucket
+STORAGE_PROVIDER=minio # minio | s3 | r2
+PREVIEW_BUCKET_NAME=preview-assets
+ORIGINAL_BUCKET_NAME=original-assets
 STORAGE_SIGNED_URL_EXPIRY=3600
 
-# AWS S3 (required when STORAGE_PROVIDER=s3)
-AWS_ACCESS_KEY_ID=your-aws-access-key
-AWS_SECRET_ACCESS_KEY=your-aws-secret-key
-AWS_REGION=us-east-1
-
-# Cloudflare R2 (required when STORAGE_PROVIDER=r2)
-R2_ACCOUNT_ID=your-account-id
-R2_ACCESS_KEY_ID=your-r2-access-key
-R2_SECRET_ACCESS_KEY=your-r2-secret-key
+# MinIO (recommended for local testing)
+MINIO_ENDPOINT=http://localhost:9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin123
+MINIO_REGION=us-east-1
+MINIO_FORCE_PATH_STYLE=true
+PREVIEW_PUBLIC_BASE_URL=http://localhost:9000/preview-assets
+ORIGINAL_PUBLIC_BASE_URL=http://localhost:9000/original-assets
 
 # Razorpay
 RAZORPAY_KEY_ID=your-razorpay-key-id
@@ -114,13 +133,12 @@ npm run prisma:generate
 # Run database migrations
 npm run prisma:migrate
 
-# Seed the database (creates admin & test users, categories)
+# Seed the database (creates only admin user)
 npm run prisma:seed
 \`\`\`
 
-**Default Users After Seeding:**
+**Default User After Seeding:**
 - **Admin:** admin@gmail.com / admin123
-- **User:** john.doe@example.com / password123
 
 **Start Backend Server:**
 
@@ -203,6 +221,7 @@ Uses **Razorpay** for payment processing:
 ## 📦 Storage Integration
 
 Media files are stored via an abstraction layer:
+- `STORAGE_PROVIDER=minio` for local/self-hosted MinIO
 - `STORAGE_PROVIDER=s3` for AWS S3
 - `STORAGE_PROVIDER=r2` for Cloudflare R2
 
@@ -381,7 +400,6 @@ Access at `/admin` (requires admin role)
 
 **Test Credentials:**
 - Admin: admin@gmail.com / admin123
-- User: john.doe@example.com / password123
 
 **Test Razorpay (Test Mode):**
 - Card: 4111 1111 1111 1111
@@ -420,4 +438,4 @@ For issues and questions:
 
 ---
 
-**Built with ❤️ using React, Node.js, PostgreSQL, and AWS**
+**Built with ❤️ using React, Node.js, PostgreSQL, and MinIO**

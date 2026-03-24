@@ -1,80 +1,79 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router';
-import { motion, AnimatePresence } from 'motion/react';
+import { useEffect, useMemo, useState } from 'react';
+import { API_BASE_URL } from '../services/api';
 
 interface Ad {
   id: string;
-  title: string;
-  description: string;
+  image: string;
   url: string;
+  status: string;
+  position: string;
 }
 
-const mockAds: Ad[] = [
-  {
-    id: '1',
-    title: 'Monthly Pass',
-    description: 'Unlimited Downloads - Save 40%',
-    url: '/explore',
-  },
-  {
-    id: '2',
-    title: 'Premium Bundle',
-    description: 'Get 50+ Photos for just ₹2,999',
-    url: '/explore',
-  },
-  {
-    id: '3',
-    title: 'New Collection',
-    description: 'Wildlife Photography Series',
-    url: '/blog',
-  },
-];
-
 export function AdvertisementSidebar() {
-  const [currentAd1, setCurrentAd1] = useState(0);
-  const [currentAd2, setCurrentAd2] = useState(1);
-  const [currentAd3, setCurrentAd3] = useState(2);
+  const [ads, setAds] = useState<Ad[]>([]);
+  const [startIndex, setStartIndex] = useState(0);
 
   useEffect(() => {
+    let isMounted = true;
+
+    fetch(`${API_BASE_URL}/advertisements?position=home-sidebar&status=active`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!isMounted) return;
+        if (data.success && Array.isArray(data.data)) {
+          setAds(data.data);
+        } else {
+          setAds([]);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setAds([]);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (ads.length <= 1) {
+      return undefined;
+    }
+
     const timer = setInterval(() => {
-      setCurrentAd1((prev) => (prev + 1) % mockAds.length);
-      setCurrentAd2((prev) => (prev + 1) % mockAds.length);
-      setCurrentAd3((prev) => (prev + 1) % mockAds.length);
+      setStartIndex((prev) => (prev + 1) % ads.length);
     }, 5000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [ads.length]);
 
-  const AdCard = ({ ad, index }: { ad: Ad; index: number }) => (
-    <Link
-      to={ad.url}
-      className="block overflow-hidden rounded-lg shadow-sm hover:shadow-md transition-shadow"
-    >
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={`${ad.id}-${index}`}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.5 }}
-          className="bg-gradient-to-br from-blue-500 to-purple-600 p-6 text-white h-32 flex flex-col justify-center"
-        >
-          <div className="text-xs font-semibold mb-2 opacity-90">SPECIAL OFFER</div>
-          <h4 className="font-bold text-lg mb-1">{ad.title}</h4>
-          <div className="text-sm opacity-90">{ad.description}</div>
-        </motion.div>
-      </AnimatePresence>
-    </Link>
-  );
+  const visibleAds = useMemo(() => {
+    const count = Math.min(3, ads.length);
+    return Array.from({ length: count }, (_, index) => ads[(startIndex + index) % ads.length]);
+  }, [ads, startIndex]);
+
+  if (!visibleAds.length) {
+    return null;
+  }
 
   return (
     <div className="sticky top-20 space-y-4">
       <h3 className="text-sm font-semibold text-gray-700 mb-3">Promotions</h3>
-      
-      {/* 3 rows, 1 column - as per requirements */}
-      <AdCard ad={mockAds[currentAd1]} index={currentAd1} />
-      <AdCard ad={mockAds[currentAd2]} index={currentAd2} />
-      <AdCard ad={mockAds[currentAd3]} index={currentAd3} />
+      {visibleAds.map((ad) => (
+        <a
+          key={ad.id}
+          href={ad.url}
+          className="block overflow-hidden rounded-lg shadow-sm hover:shadow-md transition-shadow"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <div className="relative h-40 bg-gray-100">
+            <img src={ad.image} alt="Promotion" className="h-full w-full object-cover" />
+          </div>
+        </a>
+      ))}
     </div>
   );
 }

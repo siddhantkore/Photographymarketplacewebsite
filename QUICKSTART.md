@@ -35,11 +35,17 @@ JWT_EXPIRES_IN=1h
 REFRESH_TOKEN_SECRET=dev-refresh-secret-change-in-production
 REFRESH_TOKEN_EXPIRES_IN=7d
 
-# AWS S3 - Optional for development, use mock
-AWS_ACCESS_KEY_ID=mock-key
-AWS_SECRET_ACCESS_KEY=mock-secret
-AWS_REGION=us-east-1
-AWS_S3_BUCKET=mock-bucket
+# MinIO - Local object storage
+STORAGE_PROVIDER=minio
+MINIO_ENDPOINT=http://localhost:9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin123
+MINIO_REGION=us-east-1
+MINIO_FORCE_PATH_STYLE=true
+PREVIEW_BUCKET_NAME=preview-assets
+ORIGINAL_BUCKET_NAME=original-assets
+PREVIEW_PUBLIC_BASE_URL=http://localhost:9000/preview-assets
+ORIGINAL_PUBLIC_BASE_URL=http://localhost:9000/original-assets
 
 # Razorpay - Use test credentials
 RAZORPAY_KEY_ID=your_test_key
@@ -87,9 +93,8 @@ npm run dev
 
 1. Open http://localhost:5173
 2. Click "Login"
-3. Use test credentials:
+3. Use seeded credentials:
    - **Admin:** admin@gmail.com / admin123
-   - **User:** john.doe@example.com / password123
 4. Browse products, add to cart, test checkout!
 
 ## 🎯 What's Working Now?
@@ -104,7 +109,7 @@ npm run dev
 
 ### ⚠️ Needs Configuration
 - **Payments** - Need real Razorpay keys
-- **File Uploads** - Need AWS S3 credentials
+- **File Uploads** - Need MinIO (or S3-compatible) storage running
 - **Email** - Not configured (future feature)
 - **Google Ads** - Need AdSense client ID
 
@@ -122,24 +127,15 @@ Currently, the payment will fail without valid Razorpay credentials. To test the
 4. Restart backend server
 5. Test payment with Razorpay test card: 4111 1111 1111 1111
 
-## 📸 Test AWS S3 (File Uploads)
+## 📸 Test MinIO Storage (File Uploads)
 
-For production file uploads:
+For local testing:
 
-1. Create AWS account
-2. Create S3 bucket
-3. Create IAM user with S3 permissions
-4. Get Access Key & Secret
-5. Update backend/.env:
-   \`\`\`
-   AWS_ACCESS_KEY_ID=your_real_key
-   AWS_SECRET_ACCESS_KEY=your_real_secret
-   AWS_S3_BUCKET=your-bucket-name
-   AWS_REGION=us-east-1
-   \`\`\`
-6. Restart backend
-
-**Alternative (No AWS):** Use mock URLs for development. Products already have Unsplash images in seed data.
+1. Start MinIO (Docker Compose recommended)
+2. Ensure `preview-assets` and `original-assets` buckets exist
+3. Keep preview bucket public-read for image previews
+4. Verify `.env` MinIO credentials and endpoint
+5. Restart backend
 
 ## 🎨 Enable Google Ads
 

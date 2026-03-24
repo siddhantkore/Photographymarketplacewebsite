@@ -181,7 +181,7 @@ Your app is working when you see:
 
 **Browser:**
 - ✅ No red banner at top
-- ✅ Products visible on homepage
+- ✅ Home/Explore pages load (products appear after admin uploads)
 - ✅ Can login successfully
 - ✅ No errors in console (press F12)
 
@@ -193,11 +193,7 @@ After setup, login with:
 
 **Admin:**
 - Email: `admin@gmail.com`
-- Password: `admin`
-
-**Test User:**
-- Email: `john.doe@example.com`
-- Password: `password123`
+- Password: `admin123`
 
 ---
 
@@ -231,7 +227,7 @@ curl http://localhost:5000/health
 ## 📞 Common Questions
 
 **Q: Do I need AWS/Razorpay to test?**
-A: No! The seed data includes mock products with Unsplash images. You can browse, add to cart, and test the UI without real payment integration.
+A: AWS is not required. MinIO is supported for local object storage. Razorpay test keys are required only for full payment flow testing.
 
 **Q: Which terminal should I keep open?**
 A: Both! Keep Terminal 1 (backend) and Terminal 2 (frontend) running while developing.

@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { Product } from '../lib/mock-data';
+import type { Product } from '../lib/mock-data';
 import { ShoppingCart, Package } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';

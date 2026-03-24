@@ -26,26 +26,34 @@ export function AdminCategories() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {categories.map((category) => (
-              <tr key={category.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 font-medium text-gray-900">{category.name}</td>
-                <td className="px-6 py-4 text-gray-600">{category.slug}</td>
-                <td className="px-6 py-4 text-gray-900">{category.productCount}</td>
-                <td className="px-6 py-4">
-                  <Badge>{category.status}</Badge>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="sm">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-red-600">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+            {categories.length > 0 ? (
+              categories.map((category) => (
+                <tr key={category.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 font-medium text-gray-900">{category.name}</td>
+                  <td className="px-6 py-4 text-gray-600">{category.slug}</td>
+                  <td className="px-6 py-4 text-gray-900">{category.productCount}</td>
+                  <td className="px-6 py-4">
+                    <Badge>{category.status}</Badge>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm">
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-red-600">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td className="px-6 py-6 text-gray-500" colSpan={5}>
+                  No categories available.
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>

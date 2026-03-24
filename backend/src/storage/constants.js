@@ -1,4 +1,5 @@
 export const STORAGE_PROVIDERS = Object.freeze({
+  MINIO: 'minio',
   S3: 's3',
   R2: 'r2',
 });
@@ -38,4 +39,3 @@ export function normalizeAccessType(accessType, fallback = ACCESS_TYPES.PUBLIC) 
 
   return fallback;
 }
-

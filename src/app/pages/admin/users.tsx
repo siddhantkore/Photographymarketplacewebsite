@@ -1,13 +1,11 @@
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Edit, Trash2 } from 'lucide-react';
+import { useAuth } from '../../contexts/auth-context';
 
 export function AdminUsers() {
-  const users = [
-    { id: '1', name: 'John Doe', email: 'john@example.com', role: 'user' as const, joinDate: '2025-12-15' },
-    { id: '2', name: 'Jane Smith', email: 'jane@example.com', role: 'user' as const, joinDate: '2025-11-20' },
-    { id: 'admin1', name: 'Admin', email: 'admin@gmail.com', role: 'admin' as const, joinDate: '2024-01-01' },
-  ];
+  const { user } = useAuth();
+  const users = user ? [user] : [];
 
   return (
     <div>
@@ -25,30 +23,38 @@ export function AdminUsers() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {users.map((user) => (
-              <tr key={user.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 font-medium text-gray-900">{user.name}</td>
-                <td className="px-6 py-4 text-gray-600">{user.email}</td>
-                <td className="px-6 py-4">
-                  <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                    {user.role}
-                  </Badge>
-                </td>
-                <td className="px-6 py-4 text-gray-600">
-                  {new Date(user.joinDate).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="sm">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-red-600">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+            {users.length > 0 ? (
+              users.map((user) => (
+                <tr key={user.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 font-medium text-gray-900">{user.name}</td>
+                  <td className="px-6 py-4 text-gray-600">{user.email}</td>
+                  <td className="px-6 py-4">
+                    <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                      {user.role}
+                    </Badge>
+                  </td>
+                  <td className="px-6 py-4 text-gray-600">
+                    {new Date(user.joinDate).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm" disabled>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-red-600" disabled>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td className="px-6 py-6 text-gray-500" colSpan={5}>
+                  No users available.
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>

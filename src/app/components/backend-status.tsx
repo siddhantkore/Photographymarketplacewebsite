@@ -1,6 +1,20 @@
 import { useEffect, useState } from 'react';
 import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'
+).replace(/\/+$/, '');
+
+const API_ORIGIN = (() => {
+  try {
+    return new URL(API_BASE_URL).origin;
+  } catch {
+    return 'http://localhost:5000';
+  }
+})();
+
+const HEALTH_URL = `${API_ORIGIN}/health`;
+
 export function BackendStatus() {
   const [status, setStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const [showBanner, setShowBanner] = useState(false);
@@ -8,7 +22,7 @@ export function BackendStatus() {
   useEffect(() => {
     const checkBackend = async () => {
       try {
-        const response = await fetch('http://localhost:5000/health', {
+        const response = await fetch(HEALTH_URL, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
         });
@@ -48,7 +62,7 @@ export function BackendStatus() {
             <p className="text-sm text-red-100">
               Cannot connect to backend API at{' '}
               <code className="bg-red-700 px-1 py-0.5 rounded">
-                http://localhost:5000
+                {API_ORIGIN}
               </code>
             </p>
           </div>
@@ -90,7 +104,7 @@ export function BackendStatusIndicator() {
   useEffect(() => {
     const checkBackend = async () => {
       try {
-        const response = await fetch('http://localhost:5000/health');
+        const response = await fetch(HEALTH_URL);
         setStatus(response.ok ? 'online' : 'offline');
       } catch (error) {
         setStatus('offline');

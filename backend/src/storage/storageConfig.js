@@ -30,7 +30,7 @@ function toInteger(value, fallback) {
 
 function parseProvider(provider) {
   if (typeof provider !== 'string') {
-    return STORAGE_PROVIDERS.S3;
+    return STORAGE_PROVIDERS.MINIO;
   }
 
   const normalized = provider.trim().toLowerCase();
@@ -38,7 +38,11 @@ function parseProvider(provider) {
     return STORAGE_PROVIDERS.R2;
   }
 
-  return STORAGE_PROVIDERS.S3;
+  if (normalized === STORAGE_PROVIDERS.S3) {
+    return STORAGE_PROVIDERS.S3;
+  }
+
+  return STORAGE_PROVIDERS.MINIO;
 }
 
 function requireValue(value, fieldName) {
@@ -51,8 +55,10 @@ function requireValue(value, fieldName) {
 export function loadStorageConfig(env = process.env) {
   const provider = parseProvider(env.STORAGE_PROVIDER);
 
-  const previewBucketName = env.PREVIEW_BUCKET_NAME || env.AWS_S3_BUCKET;
-  const originalBucketName = env.ORIGINAL_BUCKET_NAME || env.AWS_S3_BUCKET;
+  const previewBucketName =
+    env.PREVIEW_BUCKET_NAME || env.MINIO_PREVIEW_BUCKET || env.AWS_S3_BUCKET;
+  const originalBucketName =
+    env.ORIGINAL_BUCKET_NAME || env.MINIO_ORIGINAL_BUCKET || env.AWS_S3_BUCKET;
 
   requireValue(previewBucketName, 'PREVIEW_BUCKET_NAME');
   requireValue(originalBucketName, 'ORIGINAL_BUCKET_NAME');
@@ -97,6 +103,33 @@ export function loadStorageConfig(env = process.env) {
     };
   }
 
+  if (provider === STORAGE_PROVIDERS.MINIO) {
+    const endpoint = requireValue(
+      env.MINIO_ENDPOINT || env.AWS_S3_ENDPOINT,
+      'MINIO_ENDPOINT'
+    );
+    const accessKeyId = requireValue(
+      env.MINIO_ACCESS_KEY || env.MINIO_ROOT_USER || env.AWS_ACCESS_KEY_ID,
+      'MINIO_ACCESS_KEY'
+    );
+    const secretAccessKey = requireValue(
+      env.MINIO_SECRET_KEY || env.MINIO_ROOT_PASSWORD || env.AWS_SECRET_ACCESS_KEY,
+      'MINIO_SECRET_KEY'
+    );
+
+    return {
+      ...baseConfig,
+      providerConfig: {
+        accessKeyId,
+        secretAccessKey,
+        region: env.MINIO_REGION || env.AWS_REGION || 'us-east-1',
+        endpoint,
+        forcePathStyle: toBoolean(env.MINIO_FORCE_PATH_STYLE, true),
+        supportsAcl: false,
+      },
+    };
+  }
+
   return {
     ...baseConfig,
     providerConfig: {
@@ -108,4 +141,3 @@ export function loadStorageConfig(env = process.env) {
     },
   };
 }
-

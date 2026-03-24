@@ -1,13 +1,14 @@
 import { useParams, Link, useNavigate } from 'react-router';
-import { useState } from 'react';
-import { products, Resolution } from '../lib/mock-data';
+import { useEffect, useState } from 'react';
 import { useCart } from '../contexts/cart-context';
 import { useAuth } from '../contexts/auth-context';
+import { productsApi } from '../services/api';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { ProductCard } from '../components/product-card';
 import { toast } from 'sonner';
+import type { Product, Resolution } from '../lib/mock-data';
 import {
   ShoppingCart,
   Heart,
@@ -23,29 +24,66 @@ import { Label } from '../components/ui/label';
 
 export function ProductDetailPage() {
   const { id } = useParams();
-  const product = products.find((p) => p.id === id);
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  const [loading, setLoading] = useState(true);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [selectedResolution, setSelectedResolution] = useState<Resolution>('HD');
 
-  if (!product) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Product Not Found</h1>
-          <p className="text-gray-600 mb-4">The product you're looking for doesn't exist.</p>
-          <Link to="/explore">
-            <Button>Browse Products</Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    const loadProduct = async () => {
+      if (!id) {
+        setProduct(null);
+        setLoading(false);
+        return;
+      }
 
-  const relatedProducts = products
-    .filter((p) => p.id !== product.id && p.categories.some((c) => product.categories.includes(c)))
-    .slice(0, 3);
+      setLoading(true);
+
+      try {
+        const response: any = await productsApi.getById(id);
+
+        if (!response?.success || !response?.data) {
+          setProduct(null);
+          setRelatedProducts([]);
+          return;
+        }
+
+        const currentProduct: Product = response.data;
+        setProduct(currentProduct);
+
+        if (currentProduct.categories.length > 0) {
+          const relatedResponse: any = await productsApi.getAll({
+            category: currentProduct.categories[0],
+            limit: 8,
+            page: 1,
+          });
+
+          if (relatedResponse?.success && relatedResponse?.data?.products) {
+            const related = relatedResponse.data.products
+              .filter((item: Product) => item.id !== currentProduct.id)
+              .slice(0, 3);
+            setRelatedProducts(related);
+          } else {
+            setRelatedProducts([]);
+          }
+        } else {
+          setRelatedProducts([]);
+        }
+      } catch (error) {
+        console.error('Failed to load product:', error);
+        setProduct(null);
+        setRelatedProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProduct();
+  }, [id]);
 
   const requireAuth = () => {
     if (!isAuthenticated) {
@@ -57,6 +95,7 @@ export function ProductDetailPage() {
   };
 
   const handleAddToCart = async () => {
+    if (!product) return false;
     if (requireAuth()) return false;
 
     try {
@@ -77,17 +116,37 @@ export function ProductDetailPage() {
 
   const handleBuyNow = async () => {
     if (requireAuth()) return;
-
     const added = await handleAddToCart();
     if (added) {
       window.location.href = '/cart';
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600">Loading product...</p>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Product Not Found</h1>
+          <p className="text-gray-600 mb-4">The product you're looking for doesn't exist.</p>
+          <Link to="/explore">
+            <Button>Browse Products</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Breadcrumb */}
         <nav className="mb-6 text-sm">
           <ol className="flex items-center gap-2 text-gray-600">
             <li>
@@ -107,7 +166,6 @@ export function ProductDetailPage() {
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-          {/* Image Section */}
           <div className="space-y-4">
             <div className="relative aspect-[4/3] bg-gray-900 rounded-lg overflow-hidden">
               <ImageWithFallback
@@ -115,13 +173,11 @@ export function ProductDetailPage() {
                 alt={product.title}
                 className="w-full h-full object-cover"
               />
-              {/* Watermark */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="text-white/20 text-6xl font-bold transform rotate-[-30deg] select-none">
                   PHOTOMARKET
                 </div>
               </div>
-              {/* Type Badge */}
               <div className="absolute top-4 left-4">
                 <Badge className="capitalize">
                   {product.type === 'bundle' && <Package className="w-3 h-3 mr-1" />}
@@ -130,7 +186,6 @@ export function ProductDetailPage() {
               </div>
             </div>
 
-            {/* Additional Info */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-start gap-3">
                 <Download className="w-5 h-5 text-blue-600 mt-0.5" />
@@ -144,11 +199,9 @@ export function ProductDetailPage() {
             </div>
           </div>
 
-          {/* Details Section */}
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-3">{product.title}</h1>
 
-            {/* Categories */}
             <div className="flex flex-wrap gap-2 mb-4">
               {product.categories.map((category) => (
                 <Link key={category} to={`/explore?category=${category.toLowerCase()}`}>
@@ -157,7 +210,6 @@ export function ProductDetailPage() {
               ))}
             </div>
 
-            {/* Meta Info */}
             <div className="flex items-center gap-4 text-sm text-gray-600 mb-6">
               <div className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
@@ -177,22 +229,17 @@ export function ProductDetailPage() {
 
             <p className="text-gray-700 mb-6 leading-relaxed">{product.description}</p>
 
-            {/* Tags */}
             <div className="mb-6">
               <h3 className="text-sm font-semibold text-gray-900 mb-2">Tags</h3>
               <div className="flex flex-wrap gap-2">
                 {product.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="text-xs px-3 py-1 bg-gray-100 text-gray-700 rounded-full"
-                  >
+                  <span key={tag} className="text-xs px-3 py-1 bg-gray-100 text-gray-700 rounded-full">
                     #{tag}
                   </span>
                 ))}
               </div>
             </div>
 
-            {/* Resolution Selection */}
             <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
               <h3 className="font-semibold text-gray-900 mb-4">Select Resolution</h3>
               <RadioGroup value={selectedResolution} onValueChange={(v) => setSelectedResolution(v as Resolution)}>
@@ -225,7 +272,6 @@ export function ProductDetailPage() {
               </RadioGroup>
             </div>
 
-            {/* What's Included */}
             <div className="bg-gray-50 p-6 rounded-lg mb-6">
               <h3 className="font-semibold text-gray-900 mb-3">What's Included</h3>
               <ul className="space-y-2">
@@ -248,7 +294,6 @@ export function ProductDetailPage() {
               </ul>
             </div>
 
-            {/* Actions */}
             <div className="flex gap-3 mb-4">
               <Button onClick={handleBuyNow} size="lg" className="flex-1">
                 Buy Now - ₹{product.prices[selectedResolution]}
@@ -272,13 +317,12 @@ export function ProductDetailPage() {
           </div>
         </div>
 
-        {/* Related Products */}
         {relatedProducts.length > 0 && (
           <section>
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Related Products</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {relatedProducts.map((p) => (
-                <ProductCard key={p.id} product={p} />
+              {relatedProducts.map((item) => (
+                <ProductCard key={item.id} product={item} />
               ))}
             </div>
           </section>

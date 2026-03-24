@@ -1,7 +1,15 @@
 // API Service Layer - Central place for all API calls
 
-const API_BASE_URL = 'http://localhost:5000/api/v1';
-console.log('API_BASE_URL:', API_BASE_URL);
+export const API_BASE_URL = (
+  import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'
+).replace(/\/+$/, '');
+const API_ORIGIN = (() => {
+  try {
+    return new URL(API_BASE_URL).origin;
+  } catch {
+    return 'http://localhost:5000';
+  }
+})();
 
 const safeParseJson = (text: string) => {
   try {
@@ -120,7 +128,9 @@ class ApiClient {
       
       // Better error messages for network errors
       if (error instanceof TypeError && error.message.includes('fetch')) {
-        throw new Error('Unable to connect to server. Please make sure the backend is running on http://localhost:5000');
+        throw new Error(
+          `Unable to connect to server. Please make sure the backend is running on ${API_ORIGIN}`
+        );
       }
       
       throw error;

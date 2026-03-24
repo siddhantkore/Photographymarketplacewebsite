@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router';
+import { API_BASE_URL } from '../services/api';
 
 interface GoogleAdSettings {
   adClientId: string;
@@ -19,7 +20,7 @@ export function useGoogleAds() {
 
   useEffect(() => {
     // Fetch Google Ad settings
-    fetch('/api/v1/advertisements/google-ads/settings')
+    fetch(`${API_BASE_URL}/advertisements/google-ads/settings`)
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
