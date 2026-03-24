@@ -1,10 +1,45 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { blogs } from '../lib/mock-data';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { Calendar, User } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
+import { blogsApi } from '../services/api';
+
+interface Blog {
+  id: string;
+  title: string;
+  excerpt: string;
+  image: string;
+  author: string;
+  date: string;
+  tags: string[];
+}
 
 export function BlogListPage() {
+  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadBlogs = async () => {
+      setLoading(true);
+      try {
+        const response: any = await blogsApi.getAll({ page: 1, limit: 50 });
+        if (response?.success && response?.data?.blogs) {
+          setBlogs(response.data.blogs);
+        } else {
+          setBlogs([]);
+        }
+      } catch (error) {
+        console.error('Failed to load blogs', error);
+        setBlogs([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadBlogs();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -13,22 +48,30 @@ export function BlogListPage() {
           <p className="text-gray-600">Tips, tutorials, and inspiration from professional photographers</p>
         </div>
 
-        {blogs.length > 0 ? (
+        {loading ? (
+          <div className="bg-white rounded-lg p-8 text-center text-gray-600">Loading blog posts...</div>
+        ) : blogs.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {blogs.map((blog) => (
               <Link key={blog.id} to={`/blog/${blog.id}`} className="group">
                 <article className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
                   <div className="aspect-video bg-gray-200 overflow-hidden">
-                    <ImageWithFallback
-                      src={blog.image}
-                      alt={blog.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
+                    {blog.image ? (
+                      <ImageWithFallback
+                        src={blog.image}
+                        alt={blog.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-200" />
+                    )}
                   </div>
                   <div className="p-6">
                     <div className="flex flex-wrap gap-2 mb-3">
-                      {blog.tags.slice(0, 2).map((tag) => (
-                        <Badge key={tag} variant="secondary">{tag}</Badge>
+                      {(blog.tags || []).slice(0, 2).map((tag) => (
+                        <Badge key={`${blog.id}-${tag}`} variant="secondary">
+                          {tag}
+                        </Badge>
                       ))}
                     </div>
                     <h2 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
@@ -51,9 +94,7 @@ export function BlogListPage() {
             ))}
           </div>
         ) : (
-          <div className="bg-white rounded-lg p-8 text-center text-gray-600">
-            No blog posts available.
-          </div>
+          <div className="bg-white rounded-lg p-8 text-center text-gray-600">No blog posts available.</div>
         )}
       </div>
     </div>

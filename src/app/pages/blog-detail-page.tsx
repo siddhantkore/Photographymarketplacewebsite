@@ -1,13 +1,61 @@
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router';
-import { blogs } from '../lib/mock-data';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { Calendar, User, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
+import { blogsApi } from '../services/api';
+
+interface Blog {
+  id: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  image: string;
+  author: string;
+  date: string;
+  tags: string[];
+}
 
 export function BlogDetailPage() {
   const { id } = useParams();
-  const blog = blogs.find((b) => b.id === id);
+  const [blog, setBlog] = useState<Blog | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadBlog = async () => {
+      if (!id) {
+        setBlog(null);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const response: any = await blogsApi.getById(id);
+        if (response?.success && response?.data) {
+          setBlog(response.data);
+        } else {
+          setBlog(null);
+        }
+      } catch (error) {
+        console.error('Failed to load blog details', error);
+        setBlog(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadBlog();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600">Loading blog...</p>
+      </div>
+    );
+  }
 
   if (!blog) {
     return (
@@ -35,8 +83,10 @@ export function BlogDetailPage() {
         <div className="bg-white rounded-lg overflow-hidden shadow-sm p-8">
           <div className="mb-6">
             <div className="flex flex-wrap gap-2 mb-4">
-              {blog.tags.map((tag) => (
-                <Badge key={tag} variant="secondary">{tag}</Badge>
+              {(blog.tags || []).map((tag) => (
+                <Badge key={`${blog.id}-${tag}`} variant="secondary">
+                  {tag}
+                </Badge>
               ))}
             </div>
             <h1 className="text-4xl font-bold text-gray-900 mb-4">{blog.title}</h1>
@@ -52,22 +102,15 @@ export function BlogDetailPage() {
             </div>
           </div>
 
-          <div className="aspect-video bg-gray-200 rounded-lg overflow-hidden mb-8">
-            <ImageWithFallback
-              src={blog.image}
-              alt={blog.title}
-              className="w-full h-full object-cover"
-            />
-          </div>
+          {blog.image && (
+            <div className="aspect-video bg-gray-200 rounded-lg overflow-hidden mb-8">
+              <ImageWithFallback src={blog.image} alt={blog.title} className="w-full h-full object-cover" />
+            </div>
+          )}
 
           <div className="prose prose-lg max-w-none">
             <p className="text-xl text-gray-700 mb-6">{blog.excerpt}</p>
-            <p className="text-gray-700 leading-relaxed">{blog.content}</p>
-            <p className="text-gray-700 leading-relaxed mt-4">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor
-              incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud
-              exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-            </p>
+            <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{blog.content}</p>
           </div>
         </div>
       </article>
