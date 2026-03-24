@@ -9,6 +9,7 @@ import mediaRoutes from './mediaRoutes.js';
 import serviceRoutes from './serviceRoutes.js';
 import contactRoutes from './contactRoutes.js';
 import siteConfigRoutes from './siteConfigRoutes.js';
+import blogRoutes from './blogRoutes.js';
 
 const router = express.Router();
 
@@ -23,5 +24,6 @@ router.use('/media', mediaRoutes);
 router.use('/services', serviceRoutes);
 router.use('/contact', contactRoutes);
 router.use('/site-config', siteConfigRoutes);
+router.use('/blogs', blogRoutes);
 
 export default router;
