@@ -1,25 +1,25 @@
 import prisma from '../config/database.js';
 import { getPreviewAccessUrl, getPreviewAccessUrls } from '../utils/storageUrl.js';
 
+const DISCOUNT_VISIBILITY_THRESHOLD = 2;
+
+function calculateDiscountPercent(actualPrice, displayPrice) {
+  if (!displayPrice || displayPrice <= actualPrice) {
+    return 0;
+  }
+
+  const percent = Math.round(((displayPrice - actualPrice) / displayPrice) * 100);
+  return percent >= DISCOUNT_VISIBILITY_THRESHOLD ? percent : 0;
+}
+
 async function transformWishlistProduct(product) {
   const previewImage = await getPreviewAccessUrl(product.previewImageHD);
   const bundleImages = await getPreviewAccessUrls(product.bundlePreviewsHD || []);
 
   const discountPercent = {
-    HD:
-      product.displayPriceHD && product.displayPriceHD > product.priceHD
-        ? Math.round(((product.displayPriceHD - product.priceHD) / product.displayPriceHD) * 100)
-        : 0,
-    'Full HD':
-      product.displayPriceFullHD && product.displayPriceFullHD > product.priceFullHD
-        ? Math.round(
-            ((product.displayPriceFullHD - product.priceFullHD) / product.displayPriceFullHD) * 100
-          )
-        : 0,
-    '4K':
-      product.displayPrice4K && product.displayPrice4K > product.price4K
-        ? Math.round(((product.displayPrice4K - product.price4K) / product.displayPrice4K) * 100)
-        : 0,
+    HD: calculateDiscountPercent(product.priceHD, product.displayPriceHD),
+    'Full HD': calculateDiscountPercent(product.priceFullHD, product.displayPriceFullHD),
+    '4K': calculateDiscountPercent(product.price4K, product.displayPrice4K),
   };
 
   return {

@@ -5,6 +5,7 @@ import { getPreviewAccessUrl, getPreviewAccessUrls } from '../utils/storageUrl.j
 const DEFAULT_ALLOWED_FORMATS = ['jpg', 'jpeg', 'png', 'webp'];
 const DEFAULT_MAX_FILE_SIZE = 50 * 1024 * 1024;
 const DEFAULT_PREVIEW_QUALITY = 60;
+const DISCOUNT_VISIBILITY_THRESHOLD = 2;
 
 const resolutionMapping = {
   HD: 'priceHD',
@@ -95,6 +96,49 @@ function parsePrices(payload = {}) {
   };
 }
 
+function parseOptionalPrice(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseDisplayPrices(payload = {}, actualPrices) {
+  if (payload?.displayPrices && typeof payload.displayPrices === 'string') {
+    try {
+      payload.displayPrices = JSON.parse(payload.displayPrices);
+    } catch {
+      // Ignore and fall through.
+    }
+  }
+
+  const nested =
+    payload.displayPrices && typeof payload.displayPrices === 'object' ? payload.displayPrices : {};
+
+  const displayHD = parseOptionalPrice(payload.displayPriceHD ?? nested.HD ?? nested.hd);
+  const displayFullHD = parseOptionalPrice(
+    payload.displayPriceFullHD ?? nested['Full HD'] ?? nested.FULL_HD ?? nested.fullHd
+  );
+  const display4K = parseOptionalPrice(payload.displayPrice4K ?? nested['4K'] ?? nested.FOUR_K ?? nested.fourK);
+
+  return {
+    HD: displayHD && displayHD > actualPrices.HD ? displayHD : null,
+    FULL_HD: displayFullHD && displayFullHD > actualPrices.FULL_HD ? displayFullHD : null,
+    FOUR_K: display4K && display4K > actualPrices.FOUR_K ? display4K : null,
+  };
+}
+
+function calculateDiscountPercent(actualPrice, displayPrice) {
+  if (!displayPrice || displayPrice <= actualPrice) {
+    return 0;
+  }
+
+  const percent = Math.round(((displayPrice - actualPrice) / displayPrice) * 100);
+  return percent >= DISCOUNT_VISIBILITY_THRESHOLD ? percent : 0;
+}
+
 async function getImageProcessingConfig(overrides = {}) {
   const config = await prisma.siteConfig.findFirst();
   const watermarkOpacity = Number.parseInt(
@@ -155,6 +199,17 @@ async function transformProduct(product) {
       'Full HD': product.priceFullHD,
       '4K': product.price4K,
     },
+    displayPrices: {
+      HD: product.displayPriceHD,
+      'Full HD': product.displayPriceFullHD,
+      '4K': product.displayPrice4K,
+    },
+    discountPercent: {
+      HD: calculateDiscountPercent(product.priceHD, product.displayPriceHD),
+      'Full HD': calculateDiscountPercent(product.priceFullHD, product.displayPriceFullHD),
+      '4K': calculateDiscountPercent(product.price4K, product.displayPrice4K),
+    },
+    featured: product.featured,
     status: product.status.toLowerCase(),
     filesCount: product.filesCount,
   };
@@ -172,10 +227,24 @@ export const getProducts = async (req, res, next) => {
       sort = 'uploadDate',
       order = 'desc',
       search,
+      featured,
     } = req.query;
 
-    const skip = (Number.parseInt(page, 10) - 1) * Number.parseInt(limit, 10);
-    const take = Number.parseInt(limit, 10);
+    const currentPage = Math.max(1, Number.parseInt(page, 10) || 1);
+    const take = Math.min(100, Math.max(1, Number.parseInt(limit, 10) || 20));
+    const skip = (currentPage - 1) * take;
+    const allowedSortFields = new Set([
+      'uploadDate',
+      'createdAt',
+      'updatedAt',
+      'popularity',
+      'priceHD',
+      'priceFullHD',
+      'price4K',
+      'title',
+    ]);
+    const safeSort = allowedSortFields.has(String(sort)) ? String(sort) : 'uploadDate';
+    const safeOrder = String(order).toLowerCase() === 'asc' ? 'asc' : 'desc';
 
     const where = {};
 
@@ -188,6 +257,9 @@ export const getProducts = async (req, res, next) => {
     if (type) where.type = String(type).toUpperCase();
     if (orientation) where.orientation = String(orientation).toUpperCase();
     if (category) where.categories = { has: String(category) };
+    if (featured !== undefined) {
+      where.featured = String(featured).toLowerCase() === 'true';
+    }
 
     if (search) {
       where.OR = [
@@ -202,7 +274,7 @@ export const getProducts = async (req, res, next) => {
         where,
         skip,
         take,
-        orderBy: { [sort]: order },
+        orderBy: { [safeSort]: safeOrder },
       }),
       prisma.product.count({ where }),
     ]);
@@ -214,12 +286,12 @@ export const getProducts = async (req, res, next) => {
       data: {
         products: transformedProducts,
         pagination: {
-          currentPage: Number.parseInt(page, 10),
+          currentPage,
           totalPages: Math.ceil(total / take),
           totalItems: total,
           itemsPerPage: take,
           hasNextPage: skip + take < total,
-          hasPrevPage: Number.parseInt(page, 10) > 1,
+          hasPrevPage: currentPage > 1,
         },
       },
     });
@@ -268,7 +340,9 @@ export const createProduct = async (req, res, next) => {
     const categories = parseStringArray(req.body.categories);
     const tags = parseStringArray(req.body.tags);
     const prices = parsePrices(req.body);
+    const displayPrices = parseDisplayPrices(req.body, prices);
     const status = req.body.status ? String(req.body.status).toUpperCase() : 'ACTIVE';
+    const featured = String(req.body.featured || 'false').toLowerCase() === 'true';
     const fileGroups = !Array.isArray(req.files) && req.files ? req.files : {};
     const uploadedFiles = Array.isArray(fileGroups.files)
       ? fileGroups.files
@@ -319,6 +393,10 @@ export const createProduct = async (req, res, next) => {
         priceHD: prices.HD,
         priceFullHD: prices.FULL_HD,
         price4K: prices.FOUR_K,
+        displayPriceHD: displayPrices.HD,
+        displayPriceFullHD: displayPrices.FULL_HD,
+        displayPrice4K: displayPrices.FOUR_K,
+        featured,
         status,
         filesCount: processedImages.filesCount,
       },
@@ -351,6 +429,58 @@ export const updateProduct = async (req, res, next) => {
       updateData.priceFullHD = prices.FULL_HD;
       updateData.price4K = prices.FOUR_K;
       delete updateData.prices;
+    }
+
+    if (
+      updateData.displayPrices ||
+      updateData.displayPriceHD !== undefined ||
+      updateData.displayPriceFullHD !== undefined ||
+      updateData.displayPrice4K !== undefined
+    ) {
+      const actualPrices = {
+        HD:
+          parseOptionalPrice(updateData.priceHD) ??
+          parseOptionalPrice(req.body.priceHD) ??
+          parseOptionalPrice(updateData?.prices?.HD),
+        FULL_HD:
+          parseOptionalPrice(updateData.priceFullHD) ??
+          parseOptionalPrice(req.body.priceFullHD) ??
+          parseOptionalPrice(updateData?.prices?.['Full HD']),
+        FOUR_K:
+          parseOptionalPrice(updateData.price4K) ??
+          parseOptionalPrice(req.body.price4K) ??
+          parseOptionalPrice(updateData?.prices?.['4K']),
+      };
+
+      if (
+        actualPrices.HD === null ||
+        actualPrices.FULL_HD === null ||
+        actualPrices.FOUR_K === null
+      ) {
+        const existing = await prisma.product.findUnique({
+          where: { id },
+          select: { priceHD: true, priceFullHD: true, price4K: true },
+        });
+
+        actualPrices.HD = actualPrices.HD ?? existing?.priceHD ?? 0;
+        actualPrices.FULL_HD = actualPrices.FULL_HD ?? existing?.priceFullHD ?? 0;
+        actualPrices.FOUR_K = actualPrices.FOUR_K ?? existing?.price4K ?? 0;
+      }
+
+      const displayPrices = parseDisplayPrices(updateData, {
+        HD: actualPrices.HD,
+        FULL_HD: actualPrices.FULL_HD,
+        FOUR_K: actualPrices.FOUR_K,
+      });
+
+      updateData.displayPriceHD = displayPrices.HD;
+      updateData.displayPriceFullHD = displayPrices.FULL_HD;
+      updateData.displayPrice4K = displayPrices.FOUR_K;
+      delete updateData.displayPrices;
+    }
+
+    if (updateData.featured !== undefined) {
+      updateData.featured = String(updateData.featured).toLowerCase() === 'true' || updateData.featured === true;
     }
 
     if (updateData.categories) {
