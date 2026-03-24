@@ -4,12 +4,15 @@ export const getAdvertisements = async (req, res, next) => {
   try {
     const { position, status = 'ACTIVE' } = req.query;
 
-    const where = { status: status.toUpperCase() };
+    const where = {};
+    if (status && String(status).toUpperCase() !== 'ALL') {
+      where.status = String(status).toUpperCase();
+    }
     if (position) where.position = position.toUpperCase().replace('-', '_');
 
     const ads = await prisma.advertisement.findMany({
       where,
-      orderBy: { priority: 'desc' },
+      orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
     });
 
     const transformedAds = ads.map((ad) => ({
