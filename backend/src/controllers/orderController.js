@@ -48,6 +48,16 @@ const formatResolutionForDisplay = (resolution) => {
 };
 const PAYMENT_CURRENCY = process.env.PAYMENT_CURRENCY || 'INR';
 
+function createRazorpayReceipt(userId) {
+  const compactUserId = String(userId || '')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .slice(0, 12);
+  const timestamp = Date.now().toString(36);
+  const nonce = crypto.randomBytes(4).toString('hex');
+
+  return `rcpt_${timestamp}_${compactUserId}_${nonce}`.slice(0, 40);
+}
+
 function verifyRazorpayPaymentSignature(orderId, paymentId, signature) {
   const secret = process.env.RAZORPAY_KEY_SECRET;
   if (!secret) {
@@ -241,7 +251,7 @@ export const createOrder = async (req, res, next) => {
     });
 
     const total = pricedItems.reduce((sum, item) => sum + item.price, 0);
-    const receipt = `order_${req.user.userId}_${Date.now()}`;
+    const receipt = createRazorpayReceipt(req.user.userId);
 
     const razorpayOrder = await razorpay.orders.create({
       amount: Math.round(total * 100),
