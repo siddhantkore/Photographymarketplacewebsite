@@ -306,11 +306,10 @@ export function ProductDetailPage() {
                   {(Object.keys(product.prices) as Resolution[]).map((resolution) => (
                     <div
                       key={resolution}
-                      className={`flex items-center justify-between p-4 rounded-lg border-2 transition-colors cursor-pointer ${
-                        selectedResolution === resolution
+                      className={`flex items-center justify-between p-4 rounded-lg border-2 transition-colors cursor-pointer ${selectedResolution === resolution
                           ? 'border-blue-500 bg-blue-50'
                           : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                        }`}
                       onClick={() => setSelectedResolution(resolution)}
                     >
                       <div className="flex items-center gap-3">

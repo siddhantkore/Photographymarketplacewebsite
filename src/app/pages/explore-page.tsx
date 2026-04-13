@@ -239,7 +239,7 @@ export function ExplorePage() {
       }
 
       items.push(
-        <ProductCard key={product.id} product={product} layout="square" />
+        <ProductCard key={product.id} product={product} />
       );
     });
 
