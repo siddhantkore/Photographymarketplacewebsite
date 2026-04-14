@@ -181,7 +181,7 @@ export function ProductDetailPage() {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Product Not Found</h1>
           <p className="text-gray-600 mb-4">The product you're looking for doesn't exist.</p>
-          <Link to="/explore">
+          <Link to="/explore/products">
             <Button>Browse Products</Button>
           </Link>
         </div>

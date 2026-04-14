@@ -177,7 +177,7 @@ export function OrdersPage() {
             <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h2 className="text-xl font-bold text-gray-900 mb-2">No orders yet</h2>
             <p className="text-gray-600 mb-4">Start shopping to see your orders here</p>
-            <Link to="/explore">
+            <Link to="/explore/products">
               <Button>Browse Products</Button>
             </Link>
           </div>

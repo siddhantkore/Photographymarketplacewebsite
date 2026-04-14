@@ -55,7 +55,7 @@ export function Header() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-2">
-            <Link to="/explore">
+            <Link to="/explore/products">
               <Button variant="ghost" size="sm">
                 Explore
               </Button>
@@ -188,7 +188,7 @@ export function Header() {
         <div className="md:hidden border-t border-gray-200 bg-white">
           <nav className="max-w-7xl mx-auto px-4 py-4 space-y-2">
             <Link
-              to="/explore"
+              to="/explore/products"
               className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
               onClick={() => setMobileMenuOpen(false)}
             >

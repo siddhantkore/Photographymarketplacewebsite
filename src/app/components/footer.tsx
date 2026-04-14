@@ -24,27 +24,27 @@ export function Footer() {
             <h3 className="font-semibold text-white mb-4">Products</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/explore?type=photo" className="hover:text-white transition-colors">
+                <Link to="/explore/products?type=photo" className="hover:text-white transition-colors">
                   Single Photos
                 </Link>
               </li>
               <li>
-                <Link to="/explore?type=bundle" className="hover:text-white transition-colors">
+                <Link to="/explore/products?type=bundle" className="hover:text-white transition-colors">
                   Photo Bundles
                 </Link>
               </li>
               <li>
-                <Link to="/explore?type=typography" className="hover:text-white transition-colors">
+                <Link to="/explore/products?type=typography" className="hover:text-white transition-colors">
                   Typography
                 </Link>
               </li>
               <li>
-                <Link to="/explore?type=poster" className="hover:text-white transition-colors">
+                <Link to="/explore/products?type=poster" className="hover:text-white transition-colors">
                   Posters
                 </Link>
               </li>
               <li>
-                <Link to="/explore?type=banner" className="hover:text-white transition-colors">
+                <Link to="/explore/products?type=banner" className="hover:text-white transition-colors">
                   Banners
                 </Link>
               </li>

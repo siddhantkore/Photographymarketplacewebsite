@@ -86,7 +86,7 @@ export function WishlistPage() {
             <p className="text-gray-600 mt-2">
               Save products from the product page and they will appear here for quick access.
             </p>
-            <Link to="/explore">
+            <Link to="/explore/products">
               <Button className="mt-5">Explore Products</Button>
             </Link>
           </div>

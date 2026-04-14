@@ -2,7 +2,6 @@ import { createBrowserRouter } from "react-router";
 import { RootLayout } from "./layouts/root-layout";
 import { AdminLayout } from "./layouts/admin-layout";
 import { HomePage } from "./pages/home-page";
-import { MarketplaceHomePage } from "./pages/marketplace-home-page";
 import { ExplorePage } from "./pages/explore-page";
 import { ProductDetailPage } from "./pages/product-detail-page";
 import { CartPage } from "./pages/cart-page";
@@ -39,9 +38,8 @@ export const router = createBrowserRouter([
     path: "/",
     Component: RootLayout,
     children: [
-      { index: true, Component: MarketplaceHomePage },
-      { path: "landing", Component: HomePage },
-      { path: "explore", Component: ExplorePage },
+      { index: true, Component: HomePage },
+      { path: "explore/products", Component: ExplorePage },
       { path: "product/:id", Component: ProductDetailPage },
       { path: "cart", Component: CartPage },
       { path: "checkout", Component: CheckoutPage },
