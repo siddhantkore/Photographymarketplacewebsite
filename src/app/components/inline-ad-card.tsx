@@ -4,6 +4,7 @@ import { API_BASE_URL } from '../services/api';
 interface InlineAdCardProps {
   position: number;
   adPositions?: string[];
+  variant?: 'grid' | 'standalone';
 }
 
 interface Advertisement {
@@ -15,7 +16,7 @@ interface Advertisement {
   gridIndex: number | null;
 }
 
-export function InlineAdCard({ position, adPositions = ['product-grid'] }: InlineAdCardProps) {
+export function InlineAdCard({ position, adPositions = ['product-grid'], variant = 'grid' }: InlineAdCardProps) {
   const [ad, setAd] = useState<Advertisement | null>(null);
 
   useEffect(() => {
@@ -34,6 +35,28 @@ export function InlineAdCard({ position, adPositions = ['product-grid'] }: Inlin
   }, [position, adPositions]);
 
   if (!ad) return null;
+
+  if (variant === 'standalone') {
+    return (
+      <a
+        href={ad.url}
+        className="block group rounded-xl overflow-hidden bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
+        target="_blank"
+        rel="noreferrer"
+      >
+        <div className="relative aspect-video">
+          <img
+            src={ad.image}
+            alt="Advertisement"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+          <div className="absolute top-3 left-3 bg-gray-900/80 text-white text-xs px-2 py-1 rounded">
+            Sponsored
+          </div>
+        </div>
+      </a>
+    );
+  }
 
   return (
     <a

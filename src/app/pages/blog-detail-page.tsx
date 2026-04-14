@@ -5,6 +5,7 @@ import { Calendar, User, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { blogsApi } from '../services/api';
+import { InlineAdCard } from '../components/inline-ad-card';
 
 interface Blog {
   id: string;
@@ -112,6 +113,11 @@ export function BlogDetailPage() {
             <p className="text-xl text-gray-700 mb-6">{blog.excerpt}</p>
             <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{blog.content}</p>
           </div>
+        </div>
+
+        {/* Blog ad */}
+        <div className="mt-8 max-w-md mx-auto">
+          <InlineAdCard position={0} adPositions={['blog']} variant="standalone" />
         </div>
       </article>
     </div>

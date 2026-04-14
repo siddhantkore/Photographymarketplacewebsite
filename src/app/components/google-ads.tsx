@@ -13,6 +13,14 @@ interface GoogleAdSettings {
   excludedPages: string[];
 }
 
+interface ApiAd {
+  id: string;
+  image: string;
+  url: string;
+  status: string;
+  position: string;
+}
+
 // Hook to check if ads should be shown on current page
 export function useGoogleAds() {
   const location = useLocation();
@@ -91,65 +99,97 @@ export function VignetteAd() {
   );
 }
 
-// Side Rail Ad Component
+// Side Rail Ad Component - uses API ads, not Google AdSense
 export function SideRailAd() {
-  const { settings, shouldShowSideRail } = useGoogleAds();
+  const [ads, setAds] = useState<ApiAd[]>([]);
+  const { shouldShowSideRail } = useGoogleAds();
 
   useEffect(() => {
-    if (!shouldShowSideRail || !settings?.adClientId) return;
+    fetch(`${API_BASE_URL}/advertisements?position=side-rail&status=active`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+          setAds(data.data);
+        } else {
+          setAds([]);
+        }
+      })
+      .catch(console.error);
+  }, []);
 
-    try {
-      // @ts-ignore
-      (window.adsbygoogle = window.adsbygoogle || []).push({});
-    } catch (error) {
-      console.error('Side rail ad error:', error);
-    }
-  }, [shouldShowSideRail, settings]);
+  // Fall back to Google AdSense if no API ads available
+  if (!shouldShowSideRail && ads.length === 0) return null;
 
-  if (!shouldShowSideRail || !settings?.adClientId) return null;
+  if (ads.length > 0) {
+    return (
+      <div className="sticky top-20 hidden xl:block">
+        {ads.map((ad) => (
+          <a
+            key={ad.id}
+            href={ad.url}
+            className="block overflow-hidden rounded-lg shadow-sm hover:shadow-md transition-shadow mb-4"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <div className="relative h-[600px] w-[160px] bg-gray-100">
+              <img src={ad.image} alt="Advertisement" className="h-full w-full object-cover" />
+            </div>
+          </a>
+        ))}
+      </div>
+    );
+  }
 
-  return (
-    <div className="sticky top-20 hidden xl:block">
-      <ins
-        className="adsbygoogle"
-        style={{ display: 'block', width: '160px', height: '600px' }}
-        data-ad-client={settings.adClientId}
-        data-ad-slot="side-rail"
-        data-ad-format="vertical"
-      />
-    </div>
-  );
+  return null;
 }
 
-// Anchor/Sticky Ad Component
+// Anchor/Sticky Ad Component - uses API ads, not Google AdSense
 export function AnchorAd() {
-  const { settings, shouldShowAnchor } = useGoogleAds();
+  const [ads, setAds] = useState<ApiAd[]>([]);
+  const { shouldShowAnchor } = useGoogleAds();
 
   useEffect(() => {
-    if (!shouldShowAnchor || !settings?.adClientId) return;
+    fetch(`${API_BASE_URL}/advertisements?position=anchor&status=active`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+          setAds(data.data);
+        } else {
+          setAds([]);
+        }
+      })
+      .catch(console.error);
+  }, []);
 
-    try {
-      // @ts-ignore
-      (window.adsbygoogle = window.adsbygoogle || []).push({});
-    } catch (error) {
-      console.error('Anchor ad error:', error);
-    }
-  }, [shouldShowAnchor, settings]);
+  // Fall back to Google AdSense if no API ads available
+  if (!shouldShowAnchor && ads.length === 0) return null;
 
-  if (!shouldShowAnchor || !settings?.adClientId) return null;
+  if (ads.length > 0) {
+    return (
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white shadow-lg border-t border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center gap-4">
+          {ads.slice(0, 3).map((ad) => (
+            <a
+              key={ad.id}
+              href={ad.url}
+              className="block overflow-hidden rounded-lg hover:opacity-90 transition-opacity"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <div className="relative h-24 w-40 bg-gray-100">
+                <img src={ad.image} alt="Advertisement" className="h-full w-full object-cover" />
+              </div>
+            </a>
+          ))}
+          <div className="flex-1 text-sm text-gray-500">
+            Sponsored
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white shadow-lg">
-      <ins
-        className="adsbygoogle"
-        style={{ display: 'block', height: '90px' }}
-        data-ad-client={settings.adClientId}
-        data-ad-slot="anchor"
-        data-ad-format="horizontal"
-        data-full-width-responsive="true"
-      />
-    </div>
-  );
+  return null;
 }
 
 // Google Ads Script Loader

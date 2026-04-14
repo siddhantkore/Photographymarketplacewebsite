@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from 'react-router';
+import { Outlet } from 'react-router';
 import { Header } from '../components/header';
 import { Footer } from '../components/footer';
 import { Toaster } from '../components/ui/sonner';
@@ -8,21 +8,6 @@ import { ScrollToTop } from '../components/scroll-to-top';
 import { AnimatedBackground } from '../components/animated-background';
 
 export function RootLayout() {
-  const location = useLocation();
-
-  // Exclude visible ads from transactional/account pages to preserve trust and focus
-  const noAdPaths = [
-    /^\/login/,
-    /^\/register/,
-    /^\/verify-email/,
-    /^\/forgot-password/,
-    /^\/cart/,
-    /^\/checkout/,
-    /^\/orders/,
-    /^\/profile/,
-  ];
-  const showAds = !noAdPaths.some((pattern) => pattern.test(location.pathname));
-
   return (
     <div className="relative flex flex-col min-h-screen">
       <AnimatedBackground />
@@ -36,8 +21,7 @@ export function RootLayout() {
           <Outlet />
         </main>
         <Footer />
-        {/* Only show visible ad components on non-transactional pages */}
-        {showAds && <AnchorAd />}
+        <AnchorAd />
         <Toaster />
       </div>
     </div>
