@@ -118,13 +118,10 @@ function generateScene(w: number, h: number): SceneData {
 function getThemeColors() {
   const dark = document.documentElement.classList.contains('dark');
   return {
-    bg: dark ? '#171717' : '#ffffff',
+    bg: dark ? '#1a1a1a' : '#f9f9f9',
     stroke: dark ? 'rgba(160,160,200,0.07)' : 'rgba(60,60,90,0.06)',
     dotFill: dark ? 'rgba(180,180,220,0.15)' : 'rgba(35,35,60,0.10)',
     particleFill: dark ? 'rgba(170,170,210,0.08)' : 'rgba(50,50,80,0.06)',
-    grad1: dark ? 'rgba(60,60,120,0.06)' : 'rgba(120,120,180,0.04)',
-    grad2: dark ? 'rgba(40,80,120,0.05)' : 'rgba(100,140,180,0.03)',
-    grad3: dark ? 'rgba(100,50,120,0.05)' : 'rgba(160,110,180,0.03)',
   };
 }
 
@@ -228,49 +225,6 @@ export function AnimatedBackground() {
       className="fixed inset-0 pointer-events-none overflow-hidden"
       style={{ zIndex: 0, backgroundColor: c.bg }}
     >
-      {/* Gradient blobs */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `radial-gradient(ellipse at 25% 40%, ${c.grad1} 0%, transparent 50%), radial-gradient(ellipse at 75% 20%, ${c.grad2} 0%, transparent 50%), radial-gradient(ellipse at 50% 80%, ${c.grad3} 0%, transparent 50%)`,
-        }}
-      />
-
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `radial-gradient(ellipse at 25% 40%, ${c.grad1} 0%, transparent 50%), radial-gradient(ellipse at 75% 20%, ${c.grad2} 0%, transparent 50%), radial-gradient(ellipse at 50% 80%, ${c.grad3} 0%, transparent 50%)`,
-        }}
-      />
-
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `radial-gradient(ellipse at 25% 40%, ${c.grad1} 0%, transparent 50%), radial-gradient(ellipse at 75% 20%, ${c.grad2} 0%, transparent 50%), radial-gradient(ellipse at 50% 80%, ${c.grad3} 0%, transparent 50%)`,
-        }}
-      />
-
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `radial-gradient(ellipse at 25% 40%, ${c.grad1} 0%, transparent 50%), radial-gradient(ellipse at 75% 20%, ${c.grad2} 0%, transparent 50%), radial-gradient(ellipse at 50% 80%, ${c.grad3} 0%, transparent 50%)`,
-        }}
-      />
-
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `radial-gradient(ellipse at 25% 40%, ${c.grad1} 0%, transparent 50%), radial-gradient(ellipse at 75% 20%, ${c.grad2} 0%, transparent 50%), radial-gradient(ellipse at 50% 80%, ${c.grad3} 0%, transparent 50%)`,
-        }}
-      />
-
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `radial-gradient(ellipse at 25% 40%, ${c.grad1} 0%, transparent 50%), radial-gradient(ellipse at 75% 20%, ${c.grad2} 0%, transparent 50%), radial-gradient(ellipse at 50% 80%, ${c.grad3} 0%, transparent 50%)`,
-        }}
-      />
-
       {/* SVG branching curves + dots */}
       <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
         <path
