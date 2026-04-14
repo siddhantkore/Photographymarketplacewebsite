@@ -78,10 +78,6 @@ export function ExplorePage() {
           params.orientation = selectedOrientations.join(',');
         }
 
-        // Server-side price range
-        params.priceMin = priceRange[0];
-        params.priceMax = priceRange[1];
-
         // Sort
         const sortMapping: Record<string, { sort: string; order: string }> = {
           newest: { sort: 'uploadDate', order: 'desc' },
@@ -109,10 +105,14 @@ export function ExplorePage() {
     };
 
     loadProducts();
-  }, [searchParams, selectedCategories, selectedTypes, selectedOrientations, sortBy, currentPage, priceRange]);
+  }, [searchParams, selectedCategories, selectedTypes, selectedOrientations, sortBy, currentPage]);
 
-  // Products are already filtered server-side by price range
-  const filteredProducts = products;
+  // Filter products by price (client-side)
+  const filteredProducts = products.filter((product) => {
+    const minPrice = Math.min(product.prices.HD, product.prices['Full HD'], product.prices['4K']);
+    const maxPrice = Math.max(product.prices.HD, product.prices['Full HD'], product.prices['4K']);
+    return minPrice >= priceRange[0] && maxPrice <= priceRange[1];
+  });
 
   const handleCategoryToggle = (category: string) => {
     setSelectedCategories((prev) =>

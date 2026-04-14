@@ -228,8 +228,6 @@ export const getProducts = async (req, res, next) => {
       order = 'desc',
       search,
       featured,
-      priceMin,
-      priceMax,
     } = req.query;
 
     const currentPage = Math.max(1, Number.parseInt(page, 10) || 1);
@@ -282,21 +280,6 @@ export const getProducts = async (req, res, next) => {
         where.categories = { has: categories[0] };
       } else if (categories.length > 1) {
         where.categories = { hasSome: categories };
-      }
-    }
-    if (priceMin !== undefined || priceMax !== undefined) {
-      const minP = Number.parseFloat(priceMin);
-      const maxP = Number.parseFloat(priceMax);
-      const priceConditions = [];
-      if (Number.isFinite(minP)) priceConditions.push({ gte: minP });
-      if (Number.isFinite(maxP)) priceConditions.push({ lte: maxP });
-      if (priceConditions.length > 0) {
-        where.OR = [
-          ...(where.OR || []),
-          { priceHD: { AND: priceConditions } },
-          { priceFullHD: { AND: priceConditions } },
-          { price4K: { AND: priceConditions } },
-        ];
       }
     }
     if (featured !== undefined && featured !== null) {
