@@ -3,9 +3,7 @@
  * Handles site-wide settings including watermark, signed URL duration, contact info
  */
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../config/database.js';
 
 /**
  * Get site configuration (public - limited fields)

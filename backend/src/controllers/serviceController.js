@@ -3,9 +3,7 @@
  * Handles CRUD operations for photography services
  */
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../config/database.js';
 
 /**
  * Get all active services (public)
