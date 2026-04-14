@@ -8,7 +8,16 @@ export const getAdvertisements = async (req, res, next) => {
     if (status && String(status).toUpperCase() !== 'ALL') {
       where.status = String(status).toUpperCase();
     }
-    if (position) where.position = position.toUpperCase().replace('-', '_');
+    if (position) {
+      const positions = Array.isArray(position)
+        ? position.map(p => String(p).toUpperCase().replace('-', '_'))
+        : [String(position).toUpperCase().replace('-', '_')];
+      if (positions.length === 1) {
+        where.position = positions[0];
+      } else {
+        where.position = { in: positions };
+      }
+    }
 
     const ads = await prisma.advertisement.findMany({
       where,

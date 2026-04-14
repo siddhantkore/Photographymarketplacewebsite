@@ -9,14 +9,21 @@ interface Ad {
   position: string;
 }
 
-export function AdvertisementSidebar() {
+interface AdvertisementSidebarProps {
+  positions?: string | string[];
+}
+
+export function AdvertisementSidebar({ positions = ['home-sidebar', 'explore'] }: AdvertisementSidebarProps) {
   const [ads, setAds] = useState<Ad[]>([]);
   const [startIndex, setStartIndex] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
 
-    fetch(`${API_BASE_URL}/advertisements?position=home-sidebar&status=active`)
+    const posArray = Array.isArray(positions) ? positions : [positions];
+    const queryParams = posArray.map(p => `position=${encodeURIComponent(p)}`).join('&');
+
+    fetch(`${API_BASE_URL}/advertisements?${queryParams}&status=active`)
       .then((res) => res.json())
       .then((data) => {
         if (!isMounted) return;
@@ -35,7 +42,7 @@ export function AdvertisementSidebar() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [positions]);
 
   useEffect(() => {
     if (ads.length <= 1) {

@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../services/api';
 
 interface InlineAdCardProps {
-  position: number; // Position in the grid (e.g., after 6th product)
+  position: number;
+  adPositions?: string[];
 }
 
 interface Advertisement {
@@ -14,16 +15,15 @@ interface Advertisement {
   gridIndex: number | null;
 }
 
-export function InlineAdCard({ position }: InlineAdCardProps) {
+export function InlineAdCard({ position, adPositions = ['product-grid'] }: InlineAdCardProps) {
   const [ad, setAd] = useState<Advertisement | null>(null);
 
   useEffect(() => {
-    // Fetch inline ads for product grid
-    fetch(`${API_BASE_URL}/advertisements?position=product-grid&status=active`)
+    const queryParams = adPositions.map(p => `position=${encodeURIComponent(p)}`).join('&');
+    fetch(`${API_BASE_URL}/advertisements?${queryParams}&status=active`)
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.data.length > 0) {
-          // Find ad that matches this position or get first available
           const matchingAd = data.data.find((a: Advertisement) => a.gridIndex === position);
           setAd(matchingAd || data.data[0]);
         } else {
@@ -31,7 +31,7 @@ export function InlineAdCard({ position }: InlineAdCardProps) {
         }
       })
       .catch(console.error);
-  }, [position]);
+  }, [position, adPositions]);
 
   if (!ad) return null;
 
