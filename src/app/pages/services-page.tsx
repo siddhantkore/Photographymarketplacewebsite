@@ -7,6 +7,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { toast } from 'sonner';
+import { servicesApi, siteConfigApi, contactApi } from '../services/api';
 import {
   Camera,
   Heart,
@@ -69,10 +70,9 @@ export function ServicesPage() {
 
   const fetchServices = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/services`);
-      const data = await response.json();
-      if (data.success) {
-        setServices(data.data);
+      const response: any = await servicesApi.getAll();
+      if (response.success) {
+        setServices(response.data);
       }
     } catch (error) {
       console.error('Error fetching services:', error);
@@ -84,10 +84,9 @@ export function ServicesPage() {
 
   const fetchSiteConfig = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/site-config`);
-      const data = await response.json();
-      if (data.success) {
-        setSiteConfig(data.data);
+      const response: any = await siteConfigApi.getPublic();
+      if (response.success) {
+        setSiteConfig(response.data);
       }
     } catch (error) {
       console.error('Error fetching site config:', error);
@@ -110,23 +109,17 @@ export function ServicesPage() {
     setSubmitting(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/contact`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          inquiryType: 'service',
-          serviceId: selectedService?.id,
-        }),
+      const response: any = await contactApi.submit({
+        ...formData,
+        inquiryType: 'service',
+        serviceId: selectedService?.id,
       });
-
-      const data = await response.json();
-      if (data.success) {
+      if (response.success) {
         toast.success('Inquiry submitted successfully! We will get back to you soon.');
         setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
         setIsDialogOpen(false);
       } else {
-        toast.error(data.message || 'Failed to submit inquiry');
+        toast.error(response.message || 'Failed to submit inquiry');
       }
     } catch (error) {
       console.error('Error submitting inquiry:', error);

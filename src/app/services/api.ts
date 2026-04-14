@@ -490,6 +490,14 @@ export const adminApi = {
   getDashboard: () => apiClient.get('/admin/dashboard', 5_000),
 };
 
+export const servicesApi = {
+  getAll: () => apiClient.get('/services', 30_000),
+};
+
+export const siteConfigApi = {
+  getPublic: () => apiClient.get('/site-config', 30_000),
+};
+
 export const contactApi = {
   submit: (data: {
     name: string;
