@@ -10,7 +10,7 @@ import { AnimatedBackground } from '../components/animated-background';
 export function RootLayout() {
   const location = useLocation();
 
-  // Exclude ads from transactional/account pages to preserve trust and focus
+  // Exclude visible ads from transactional/account pages to preserve trust and focus
   const noAdPaths = [
     /^\/login/,
     /^\/register/,
@@ -27,7 +27,8 @@ export function RootLayout() {
     <div className="relative flex flex-col min-h-screen">
       <AnimatedBackground />
       <div className="relative z-[1] flex flex-col min-h-screen">
-        {showAds && <GoogleAdsScript />}
+        {/* Always load ad script so Google AdSense is initialized */}
+        <GoogleAdsScript />
         <BackendStatus />
         <ScrollToTop />
         <Header />
@@ -35,6 +36,7 @@ export function RootLayout() {
           <Outlet />
         </main>
         <Footer />
+        {/* Only show visible ad components on non-transactional pages */}
         {showAds && <AnchorAd />}
         <Toaster />
       </div>
