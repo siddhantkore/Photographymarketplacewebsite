@@ -10,11 +10,24 @@ import { AnimatedBackground } from '../components/animated-background';
 export function RootLayout() {
   const location = useLocation();
 
+  // Exclude ads from transactional/account pages to preserve trust and focus
+  const noAdPaths = [
+    /^\/login/,
+    /^\/register/,
+    /^\/verify-email/,
+    /^\/forgot-password/,
+    /^\/cart/,
+    /^\/checkout/,
+    /^\/orders/,
+    /^\/profile/,
+  ];
+  const showAds = !noAdPaths.some((pattern) => pattern.test(location.pathname));
+
   return (
     <div className="relative flex flex-col min-h-screen">
       <AnimatedBackground />
       <div className="relative z-[1] flex flex-col min-h-screen">
-        <GoogleAdsScript />
+        {showAds && <GoogleAdsScript />}
         <BackendStatus />
         <ScrollToTop />
         <Header />
@@ -22,7 +35,7 @@ export function RootLayout() {
           <Outlet />
         </main>
         <Footer />
-        <AnchorAd />
+        {showAds && <AnchorAd />}
         <Toaster />
       </div>
     </div>
