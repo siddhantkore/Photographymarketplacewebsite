@@ -54,8 +54,12 @@ export async function sendOtpEmail({ email, otp, purpose }) {
 
   const transporter = getTransporter();
   if (!transporter) {
-    console.log(`[OTP:FALLBACK] purpose=${purpose} email=${email} otp=${otp}`);
-    return { sent: true, simulated: true };
+    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+      console.log(`[OTP:FALLBACK] email=${email} purpose=${purpose} — OTP redacted (configure SMTP to receive real codes)`);
+    } else {
+      console.error(`[OTP:FALLBACK] email=${email} — SMTP not configured. OTP delivery blocked.`);
+    }
+    return { sent: false, simulated: true };
   }
 
   await transporter.sendMail({
