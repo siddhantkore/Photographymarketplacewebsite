@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
-import { Facebook, Twitter, Instagram, Youtube } from 'lucide-react';
 
+// TODO: Add real social profile URLs to siteConfig and wire them here
 export function Footer() {
   return (
     <footer className="bg-gray-900 text-gray-300">
@@ -17,20 +17,6 @@ export function Footer() {
             <p className="text-sm text-gray-400">
               Your premier destination for high-quality digital photography and creative assets.
             </p>
-            <div className="flex gap-3 mt-4">
-              <a href="#" className="hover:text-white transition-colors">
-                <Facebook className="w-5 h-5" />
-              </a>
-              <a href="#" className="hover:text-white transition-colors">
-                <Twitter className="w-5 h-5" />
-              </a>
-              <a href="#" className="hover:text-white transition-colors">
-                <Instagram className="w-5 h-5" />
-              </a>
-              <a href="#" className="hover:text-white transition-colors">
-                <Youtube className="w-5 h-5" />
-              </a>
-            </div>
           </div>
 
           {/* Products */}
