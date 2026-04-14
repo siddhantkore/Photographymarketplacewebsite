@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router';
-import { Search, ShoppingCart, User, LogOut, LayoutDashboard, Heart } from 'lucide-react';
+import { Search, ShoppingCart, User, LogOut, LayoutDashboard, Heart, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../contexts/auth-context';
 import { useCart } from '../contexts/cart-context';
@@ -15,6 +15,7 @@ import {
 
 export function Header() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const { user, isAuthenticated, isAdmin, logout, loading } = useAuth();
   const { getItemCount } = useCart();
@@ -52,19 +53,19 @@ export function Header() {
             </div>
           </form>
 
-          {/* Navigation */}
-          <div className="flex items-center gap-1 sm:gap-2">
-            <Link to="/explore" className="hidden md:block">
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-2">
+            <Link to="/explore">
               <Button variant="ghost" size="sm">
                 Explore
               </Button>
             </Link>
-            <Link to="/services" className="hidden lg:block">
+            <Link to="/services">
               <Button variant="ghost" size="sm">
                 Services
               </Button>
             </Link>
-            <Link to="/blog" className="hidden lg:block">
+            <Link to="/blog">
               <Button variant="ghost" size="sm">
                 Blog
               </Button>
@@ -154,6 +155,15 @@ export function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+
+          {/* Mobile menu toggle */}
+          <button
+            className="md:hidden p-2 rounded-md hover:bg-gray-100"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
       </div>
 
@@ -172,6 +182,112 @@ export function Header() {
           </div>
         </form>
       </div>
+
+      {/* Mobile Navigation Drawer */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-gray-200 bg-white">
+          <nav className="max-w-7xl mx-auto px-4 py-4 space-y-2">
+            <Link
+              to="/explore"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Explore
+            </Link>
+            <Link
+              to="/services"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Services
+            </Link>
+            <Link
+              to="/blog"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Blog
+            </Link>
+
+            <div className="border-t border-gray-200 my-2" />
+
+            <Link
+              to="/wishlist"
+              className="flex items-center gap-3 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <Heart className="w-5 h-5" />
+              Wishlist
+            </Link>
+
+            <Link
+              to="/cart"
+              className="flex items-center gap-3 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <ShoppingCart className="w-5 h-5" />
+              Cart {getItemCount() > 0 && `(${getItemCount()})`}
+            </Link>
+
+            <div className="border-t border-gray-200 my-2" />
+
+            {loading ? (
+              <div className="px-3 py-2 text-sm text-gray-500">Loading...</div>
+            ) : isAuthenticated ? (
+              <>
+                <div className="px-3 py-2">
+                  <p className="font-medium text-gray-900">{user?.name}</p>
+                  <p className="text-gray-500 text-sm">{user?.email}</p>
+                </div>
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    className="flex items-center gap-3 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <LayoutDashboard className="w-5 h-5" />
+                    Admin Dashboard
+                  </Link>
+                )}
+                <Link
+                  to="/profile"
+                  className="flex items-center gap-3 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <User className="w-5 h-5" />
+                  Profile
+                </Link>
+                <Link
+                  to="/orders"
+                  className="flex items-center gap-3 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <ShoppingCart className="w-5 h-5" />
+                  My Orders
+                </Link>
+                <button
+                  onClick={() => {
+                    logout();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="flex items-center gap-3 w-full px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                >
+                  <LogOut className="w-5 h-5" />
+                  Logout
+                </button>
+              </>
+            ) : (
+              <Link
+                to="/login"
+                className="block px-3 py-2 rounded-md text-base font-medium text-blue-600 hover:bg-blue-50"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Log in
+              </Link>
+            )}
+          </nav>
+        </div>
+      )}
     </header>
   );
 }
