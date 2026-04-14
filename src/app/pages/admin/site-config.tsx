@@ -6,7 +6,7 @@ import { Textarea } from '../../components/ui/textarea';
 import { Card } from '../../components/ui/card';
 import { toast } from 'sonner';
 import { Save, Settings } from 'lucide-react';
-import { getToken } from '../../services/api';
+import { adminApi } from '../../services/api';
 
 interface SiteConfig {
   phoneNumber: string;
@@ -37,14 +37,9 @@ export function AdminSiteConfig() {
 
   const fetchConfig = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/site-config/full`, {
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
-      });
-      const data = await response.json();
-      if (data.success && data.data) {
-        setConfig(data.data);
+      const response: any = await adminApi.getSiteConfig();
+      if (response.success && response.data) {
+        setConfig(response.data);
       }
     } catch (error) {
       toast.error('Failed to load configuration');
@@ -58,20 +53,11 @@ export function AdminSiteConfig() {
     setSaving(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/site-config`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: JSON.stringify(config),
-      });
-
-      const data = await response.json();
-      if (data.success) {
+      const response: any = await adminApi.updateSiteConfig(config);
+      if (response.success) {
         toast.success('Configuration updated successfully');
       } else {
-        toast.error(data.message || 'Failed to update configuration');
+        toast.error(response.message || 'Failed to update configuration');
       }
     } catch (error) {
       toast.error('Failed to update configuration');

@@ -488,6 +488,8 @@ export const wishlistApi = {
 
 export const adminApi = {
   getDashboard: () => apiClient.get('/admin/dashboard', 5_000),
+  getSiteConfig: () => apiClient.get('/site-config/full', 5_000),
+  updateSiteConfig: (data: Record<string, unknown>) => apiClient.put('/site-config', data),
 };
 
 export const servicesApi = {
