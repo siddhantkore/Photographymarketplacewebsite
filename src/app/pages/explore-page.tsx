@@ -61,22 +61,26 @@ export function ExplorePage() {
         const searchQuery = searchParams.get('search');
         if (searchQuery) params.search = searchQuery;
 
-        // Category
+        // Multi-select Category
         const categoryParam = searchParams.get('category');
         const activeCategories = categoryParam ? [categoryParam] : selectedCategories;
         if (activeCategories.length > 0) {
-          params.category = activeCategories[0]; // Backend supports single category for now
+          params.category = activeCategories.join(',');
         }
 
-        // Type
+        // Multi-select Type
         if (selectedTypes.length > 0) {
-          params.type = selectedTypes[0];
+          params.type = selectedTypes.join(',');
         }
 
-        // Orientation
+        // Multi-select Orientation
         if (selectedOrientations.length > 0) {
-          params.orientation = selectedOrientations[0];
+          params.orientation = selectedOrientations.join(',');
         }
+
+        // Server-side price range
+        params.priceMin = priceRange[0];
+        params.priceMax = priceRange[1];
 
         // Sort
         const sortMapping: Record<string, { sort: string; order: string }> = {
@@ -92,7 +96,7 @@ export function ExplorePage() {
         params.order = sortConfig.order;
 
         const response: any = await productsApi.getAll(params);
-        
+
         if (response.success && response.data) {
           setProducts(response.data.products);
           setTotalPages(response.data.pagination.totalPages);
@@ -105,14 +109,10 @@ export function ExplorePage() {
     };
 
     loadProducts();
-  }, [searchParams, selectedCategories, selectedTypes, selectedOrientations, sortBy, currentPage]);
+  }, [searchParams, selectedCategories, selectedTypes, selectedOrientations, sortBy, currentPage, priceRange]);
 
-  // Filter products by price (client-side for now)
-  const filteredProducts = products.filter((product) => {
-    const minPrice = Math.min(product.prices.HD, product.prices['Full HD'], product.prices['4K']);
-    const maxPrice = Math.max(product.prices.HD, product.prices['Full HD'], product.prices['4K']);
-    return minPrice >= priceRange[0] && maxPrice <= priceRange[1];
-  });
+  // Products are already filtered server-side by price range
+  const filteredProducts = products;
 
   const handleCategoryToggle = (category: string) => {
     setSelectedCategories((prev) =>

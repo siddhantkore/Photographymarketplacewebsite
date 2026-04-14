@@ -228,6 +228,8 @@ export const getProducts = async (req, res, next) => {
       order = 'desc',
       search,
       featured,
+      priceMin,
+      priceMax,
     } = req.query;
 
     const currentPage = Math.max(1, Number.parseInt(page, 10) || 1);
@@ -258,9 +260,45 @@ export const getProducts = async (req, res, next) => {
       }
     }
 
-    if (type) where.type = String(type).toUpperCase();
-    if (orientation) where.orientation = String(orientation).toUpperCase();
-    if (category) where.categories = { has: String(category) };
+    if (type) {
+      const types = parseStringArray(type);
+      if (types.length === 1) {
+        where.type = types[0].toUpperCase();
+      } else if (types.length > 1) {
+        where.type = { in: types.map((t) => t.toUpperCase()) };
+      }
+    }
+    if (orientation) {
+      const orientations = parseStringArray(orientation);
+      if (orientations.length === 1) {
+        where.orientation = orientations[0].toUpperCase();
+      } else if (orientations.length > 1) {
+        where.orientation = { in: orientations.map((o) => o.toUpperCase()) };
+      }
+    }
+    if (category) {
+      const categories = parseStringArray(category);
+      if (categories.length === 1) {
+        where.categories = { has: categories[0] };
+      } else if (categories.length > 1) {
+        where.categories = { hasSome: categories };
+      }
+    }
+    if (priceMin !== undefined || priceMax !== undefined) {
+      const minP = Number.parseFloat(priceMin);
+      const maxP = Number.parseFloat(priceMax);
+      const priceConditions = [];
+      if (Number.isFinite(minP)) priceConditions.push({ gte: minP });
+      if (Number.isFinite(maxP)) priceConditions.push({ lte: maxP });
+      if (priceConditions.length > 0) {
+        where.OR = [
+          ...(where.OR || []),
+          { priceHD: { AND: priceConditions } },
+          { priceFullHD: { AND: priceConditions } },
+          { price4K: { AND: priceConditions } },
+        ];
+      }
+    }
     if (featured !== undefined && featured !== null) {
       const normalizedFeatured = String(featured).trim().toLowerCase();
       if (normalizedFeatured === 'true' || normalizedFeatured === 'false') {
