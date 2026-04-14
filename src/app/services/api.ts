@@ -1,5 +1,66 @@
 // API Service Layer - Central place for all API calls
 
+// ── Shared API response types ──
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: string;
+}
+
+export interface PaginationInfo {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+export interface PaginatedResponse<T = unknown> extends ApiResponse<T> {
+  data: {
+    products: T[];
+    pagination: PaginationInfo;
+  };
+}
+
+export interface Product {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  type: string;
+  orientation: string;
+  categories: string[];
+  tags: string[];
+  prices: { HD: number; 'Full HD': number; '4K': number };
+  previewUrl: string;
+  featured: boolean;
+  popularity: number;
+  uploadDate: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  productCount: number;
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'USER' | 'ADMIN';
+  isEmailVerified: boolean;
+}
+
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+}
+
 export const API_BASE_URL = (
   import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'
 ).replace(/\/+$/, '');
