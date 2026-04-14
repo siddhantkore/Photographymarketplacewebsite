@@ -132,7 +132,7 @@ export function ProductDetailPage() {
     if (requireAuth()) return;
     const added = await handleAddToCart();
     if (added) {
-      window.location.href = '/cart';
+      navigate('/cart');
     }
   };
 
