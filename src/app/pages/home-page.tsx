@@ -120,12 +120,12 @@ const services = [
    Why Choose Us data
 ────────────────────────────────────────── */
 const whyItems = [
-  { icon: Award, title: 'Award-Winning Studio', desc: '50+ national and international photography awards since 2016.' },
-  { icon: Download, title: 'Instant Download', desc: 'Purchase and download high-resolution photos instantly in multiple formats.' },
-  { icon: ShieldCheck, title: 'Royalty-Free License', desc: 'One-time purchase grants you full commercial and personal usage rights.' },
-  { icon: BadgeCheck, title: '100% Satisfaction', desc: 'Not happy? We offer a hassle-free refund within 7 days of purchase.' },
-  { icon: Lock, title: 'Secure Payments', desc: 'Bank-grade encryption with multiple trusted payment options available.' },
-  { icon: MessageCircle, title: '24/7 Support', desc: 'Our dedicated support team is always ready to help with any queries.' },
+  { icon: Award, title: 'Award-Winning Studio', desc: '50+ national and international photography awards since 2016.', color: '#6366f1' },
+  { icon: Download, title: 'Instant Download', desc: 'Purchase and download high-resolution photos instantly in multiple formats.', color: '#0ea5e9' },
+  { icon: ShieldCheck, title: 'Royalty-Free License', desc: 'One-time purchase grants you full commercial and personal usage rights.', color: '#10b981' },
+  { icon: BadgeCheck, title: '100% Satisfaction', desc: 'Not happy? We offer a hassle-free refund within 7 days of purchase.', color: '#f59e0b' },
+  { icon: Lock, title: 'Secure Payments', desc: 'Bank-grade encryption with multiple trusted payment options available.', color: '#8b5cf6' },
+  { icon: MessageCircle, title: '24/7 Support', desc: 'Our dedicated support team is always ready to help with any queries.', color: '#ec4899' },
 ];
 
 /* ──────────────────────────────────────────
@@ -431,7 +431,7 @@ export function HomePage() {
                   className="lps-why-item lps-reveal"
                   style={{ transitionDelay: `${(i % 3) * 0.1}s` }}
                 >
-                  <div className="lps-why-icon" aria-hidden="true">
+                  <div className="lps-why-icon" aria-hidden="true" style={{ color: item.color }}>
                     <IconComponent size={28} strokeWidth={1.5} />
                   </div>
                   <div className="lps-why-title">{item.title}</div>
