@@ -478,7 +478,6 @@ export function HomePage() {
       {(loading || popularProducts.length > 0) && (
         <section
           className="lps-section"
-          style={{ background: 'white' }}
           aria-labelledby="popular-heading"
         >
           <div className="lps-container">

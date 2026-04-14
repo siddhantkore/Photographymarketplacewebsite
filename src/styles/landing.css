@@ -338,7 +338,7 @@
 
 /* ── Services Section ── */
 .lps-services {
-  background: #fafafa;
+  background: transparent;
 }
 
 .lps-services-grid {
@@ -481,7 +481,7 @@
 
 /* ── Testimonials ── */
 .lps-testimonials {
-  background: white;
+  background: transparent;
 }
 
 .lps-testimonials-grid {
@@ -636,7 +636,7 @@
 
 /* ── Portfolio / Product Sections ── */
 .lps-products {
-  background: #f9fafb;
+  background: transparent;
 }
 
 .lps-products-header {
