@@ -304,7 +304,7 @@ export function HomePage() {
           </h1>
           <p className="lps-hero-subtitle">{heroSlides[current].subtitle}</p>
           <div className="lps-hero-btns">
-            <Link to="/explore/products" className="lps-btn-primary">
+            <Link to="/explore" className="lps-btn-primary">
               Explore Gallery <span>→</span>
             </Link>
             <Link to="/services" className="lps-btn-ghost">
@@ -451,7 +451,7 @@ export function HomePage() {
               <div className="lps-products-title" id="latest-heading">
                 <Clock size={20} strokeWidth={2} className="inline align-middle mr-2" /> Latest Uploads
               </div>
-              <Link to="/explore/products?sort=newest" className="lps-view-all">
+              <Link to="/explore?sort=newest" className="lps-view-all">
                 View All <span>→</span>
               </Link>
             </div>
@@ -485,7 +485,7 @@ export function HomePage() {
               <div className="lps-products-title" id="popular-heading">
                 <TrendingUp size={20} strokeWidth={2} className="inline align-middle mr-2" /> Most Popular
               </div>
-              <Link to="/explore/products?sort=popular" className="lps-view-all">
+              <Link to="/explore?sort=popular" className="lps-view-all">
                 View All <span>→</span>
               </Link>
             </div>
@@ -571,7 +571,7 @@ export function HomePage() {
           <Link to="/services" className="lps-btn-white">
             <CalendarDays size={18} className="inline align-middle mr-1" /> Book a Session
           </Link>
-          <Link to="/explore/products" className="lps-btn-outline-white">
+          <Link to="/explore" className="lps-btn-outline-white">
             <Image size={18} className="inline align-middle mr-1" /> Browse Gallery
           </Link>
         </div>
