@@ -82,13 +82,6 @@ export function LoginPage() {
               </Link>
             </p>
           </div>
-
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg text-sm">
-            <p className="font-semibold text-blue-900 mb-2">Seeded Admin Credentials:</p>
-            <p className="text-blue-700">
-              <strong>Admin:</strong> admin@gmail.com / admin123
-            </p>
-          </div>
         </div>
       </div>
     </div>

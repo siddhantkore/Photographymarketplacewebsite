@@ -91,8 +91,8 @@ npm run dev
 
 ## Default Admin (After Seed)
 
-- Email: `admin@gmail.com`
-- Password: `admin123`
+Admin credentials are **not** hardcoded. Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` environment variables before running `npm run prisma:seed`.
+If not set, no admin user will be created.
 
 ## Useful Scripts
 
