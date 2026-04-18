@@ -33,7 +33,7 @@ function generateScene(w: number, h: number): SceneData {
   const short = Math.min(w, h);
 
   // Bokeh circles — spread across viewport
-  const count = Math.max(14, Math.floor((w * h) / 28000));
+  const count = Math.max(40, Math.floor((w * h) / 28000));
   const bokeh: BokehParticle[] = [];
   for (let i = 0; i < count; i++) {
     bokeh.push({
@@ -51,9 +51,9 @@ function generateScene(w: number, h: number): SceneData {
 
   // Aperture hexagon rings — positioned near corners/edges
   const rings: ApertureRing[] = [
-    { cx: w * 0.10, cy: h * 0.16, radius: short * 0.11, rotSpeed:  0.018, phase: 0.0, baseOpacity: 0.030 },
+    { cx: w * 0.10, cy: h * 0.16, radius: short * 0.11, rotSpeed: 0.018, phase: 0.0, baseOpacity: 0.030 },
     { cx: w * 0.89, cy: h * 0.74, radius: short * 0.16, rotSpeed: -0.012, phase: 1.8, baseOpacity: 0.025 },
-    { cx: w * 0.54, cy: h * 0.89, radius: short * 0.07, rotSpeed:  0.025, phase: 3.2, baseOpacity: 0.035 },
+    { cx: w * 0.54, cy: h * 0.89, radius: short * 0.07, rotSpeed: 0.025, phase: 3.2, baseOpacity: 0.035 },
     { cx: w * 0.80, cy: h * 0.12, radius: short * 0.09, rotSpeed: -0.020, phase: 0.9, baseOpacity: 0.028 },
   ];
 
@@ -63,14 +63,14 @@ function generateScene(w: number, h: number): SceneData {
 /* ── Theme-aware colors — warm cream / deep charcoal palette ── */
 function getThemeColors(dark: boolean) {
   return {
-    bg:             dark ? '#0d0d0d'               : '#faf9f7',
-    warmBokeh:      dark ? ([210, 185, 150] as const) : ([210, 190, 160] as const),
-    coolBokeh:      dark ? ([140, 165, 215] as const) : ([170, 160, 190] as const),
-    ringStroke:     dark ? ([200, 195, 215] as const) : ([140, 130, 120] as const),
-    leakColor:      dark ? 'rgba(200,160,100,0.015)' : 'rgba(240,210,150,0.025)',
-    vignetteStop:   dark ? 'rgba(0,0,0,0.50)'        : 'rgba(0,0,0,0.06)',
-    bracketStroke:  dark ? '#ccc8dc'                 : '#a09585',
-    bracketOpacity: dark ? 0.22                      : 0.10,
+    bg: dark ? '#0d0d0d' : '#faf9f7',
+    warmBokeh: dark ? ([210, 185, 150] as const) : ([210, 190, 160] as const),
+    coolBokeh: dark ? ([140, 165, 215] as const) : ([170, 160, 190] as const),
+    ringStroke: dark ? ([200, 195, 215] as const) : ([140, 130, 120] as const),
+    leakColor: dark ? 'rgba(200,160,100,0.015)' : 'rgba(240,210,150,0.025)',
+    vignetteStop: dark ? 'rgba(0,0,0,0.50)' : 'rgba(0,0,0,0.06)',
+    bracketStroke: dark ? '#ccc8dc' : '#a09585',
+    bracketOpacity: dark ? 0.22 : 0.10,
   };
 }
 
@@ -102,20 +102,20 @@ function drawHex(
 /* ── Corner viewfinder bracket config ── */
 const CORNER_BRACKETS = [
   // Each entry: CSS position classes, vertical line [x1,y1,x2,y2], horizontal line, dot [cx,cy]
-  { pos: 'top-4 left-4',     vl: [4, 4, 4, 18] as const, hl: [4,  4, 18,  4] as const, dot: [4,  4] as const },
-  { pos: 'top-4 right-4',    vl: [20,4,20, 18] as const, hl: [20, 4,  6,  4] as const, dot: [20, 4] as const },
-  { pos: 'bottom-4 left-4',  vl: [4,20, 4,  6] as const, hl: [4, 20, 18, 20] as const, dot: [4, 20] as const },
-  { pos: 'bottom-4 right-4', vl: [20,20,20,  6] as const, hl: [20,20,  6, 20] as const, dot: [20,20] as const },
+  { pos: 'top-4 left-4', vl: [4, 4, 4, 18] as const, hl: [4, 4, 18, 4] as const, dot: [4, 4] as const },
+  { pos: 'top-4 right-4', vl: [20, 4, 20, 18] as const, hl: [20, 4, 6, 4] as const, dot: [20, 4] as const },
+  { pos: 'bottom-4 left-4', vl: [4, 20, 4, 6] as const, hl: [4, 20, 18, 20] as const, dot: [4, 20] as const },
+  { pos: 'bottom-4 right-4', vl: [20, 20, 20, 6] as const, hl: [20, 20, 6, 20] as const, dot: [20, 20] as const },
 ];
 
 /* ── COMPONENT ── */
 export function AnimatedBackground() {
-  const canvasRef   = useRef<HTMLCanvasElement>(null);
-  const frameRef    = useRef(0);
-  const mouseRef    = useRef({ x: -9999, y: -9999 }); // cursor pos for spotlight
-  const sceneRef    = useRef<SceneData>(
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const frameRef = useRef(0);
+  const mouseRef = useRef({ x: -9999, y: -9999 }); // cursor pos for spotlight
+  const sceneRef = useRef<SceneData>(
     generateScene(
-      typeof window !== 'undefined' ? window.innerWidth  : 1440,
+      typeof window !== 'undefined' ? window.innerWidth : 1440,
       typeof window !== 'undefined' ? window.innerHeight : 900,
     )
   );
@@ -126,20 +126,20 @@ export function AnimatedBackground() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d')!;
-    const w    = canvas.clientWidth;
-    const h    = canvas.clientHeight;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
     const time = Date.now() * 0.001;
     const dark = document.documentElement.classList.contains('dark');
-    const c    = getThemeColors(dark);
+    const c = getThemeColors(dark);
     const { bokeh, rings } = sceneRef.current;
 
     ctx.clearRect(0, 0, w, h);
 
     // 1 — Light leak: warm diagonal gradient from top-left (vintage film effect)
     const leak = ctx.createLinearGradient(0, 0, w * 0.4, h * 0.3);
-    leak.addColorStop(0,    c.leakColor);
+    leak.addColorStop(0, c.leakColor);
     leak.addColorStop(0.55, c.leakColor);
-    leak.addColorStop(1,    'rgba(0,0,0,0)');
+    leak.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = leak;
     ctx.fillRect(0, 0, w, h);
 
@@ -150,8 +150,8 @@ export function AnimatedBackground() {
     const SPOTLIGHT_RADIUS = 180; // px — range of cursor influence
 
     for (const p of bokeh) {
-      const x   = p.baseX + Math.sin(time * p.speed + p.phase) * p.driftX;
-      const y   = p.baseY + Math.cos(time * p.speed * 0.65 + p.phase + 0.8) * p.driftY;
+      const x = p.baseX + Math.sin(time * p.speed + p.phase) * p.driftX;
+      const y = p.baseY + Math.cos(time * p.speed * 0.65 + p.phase + 0.8) * p.driftY;
       const rgb = p.warm ? c.warmBokeh : c.coolBokeh;
 
       // Cursor proximity boost: 0 (far) → 1 (on top)
@@ -162,13 +162,13 @@ export function AnimatedBackground() {
       const boost = proximity * proximity; // quadratic falloff for smooth glow
 
       // Enhanced opacity & size near cursor
-      const op   = p.opacity + boost * 0.22;
-      const size = p.size    + boost * 14;
+      const op = p.opacity + boost * 0.99;
+      const size = p.size + boost * 30;
 
       const grad = ctx.createRadialGradient(x, y, 0, x, y, size);
-      grad.addColorStop(0,    `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${(op * 1.6).toFixed(3)})`);
+      grad.addColorStop(0, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${(op * 1.6).toFixed(3)})`);
       grad.addColorStop(0.45, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${op.toFixed(3)})`);
-      grad.addColorStop(1,    `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0)`);
+      grad.addColorStop(1, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0)`);
 
       ctx.beginPath();
       ctx.arc(x, y, size, 0, Math.PI * 2);
@@ -178,10 +178,10 @@ export function AnimatedBackground() {
 
     // 3 — Aperture hexagon rings: double-ring, slowly rotating + opacity pulse
     for (const ring of rings) {
-      const rot   = time * ring.rotSpeed + ring.phase;
+      const rot = time * ring.rotSpeed + ring.phase;
       const pulse = ring.baseOpacity * (0.6 + 0.4 * Math.sin(time * 0.4 + ring.phase));
       // Outer ring
-      drawHex(ctx, ring.cx, ring.cy, ring.radius,        rot,              c.ringStroke, pulse,        0.7);
+      drawHex(ctx, ring.cx, ring.cy, ring.radius, rot, c.ringStroke, pulse, 0.7);
       // Inner ring — offset rotation by 30° (π/6) for aperture blade effect
       drawHex(ctx, ring.cx, ring.cy, ring.radius * 0.70, rot + Math.PI / 6, c.ringStroke, pulse * 0.55, 0.5);
     }
@@ -199,9 +199,9 @@ export function AnimatedBackground() {
     const resize = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
-      canvas.width        = w * dpr;
-      canvas.height       = h * dpr;
-      canvas.style.width  = `${w}px`;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = `${w}px`;
       canvas.style.height = `${h}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       sceneRef.current = generateScene(w, h);
