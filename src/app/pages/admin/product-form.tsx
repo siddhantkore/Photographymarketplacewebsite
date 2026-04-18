@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../components/ui/select';
-import { productsApi } from '../../services/api';
+import { productsApi, categoriesApi } from '../../services/api';
 
 type ProductType = 'photo' | 'bundle' | 'typography' | 'poster' | 'banner';
 type OrientationType = 'portrait' | 'landscape' | 'square';
@@ -22,7 +22,7 @@ interface ProductFormState {
   description: string;
   type: ProductType;
   orientation: OrientationType;
-  categories: string;
+  categories: string[];
   tags: string;
   priceHD: string;
   priceFullHD: string;
@@ -52,7 +52,7 @@ const initialFormState: ProductFormState = {
   description: '',
   type: 'photo',
   orientation: 'landscape',
-  categories: '',
+  categories: [],
   tags: '',
   priceHD: '',
   priceFullHD: '',
@@ -78,6 +78,21 @@ export function AdminProductForm() {
   const [watermarkImage, setWatermarkImage] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(isEditMode);
+  const [availableCategories, setAvailableCategories] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const response: any = await categoriesApi.getAll({ status: 'active' });
+        if (response?.success && Array.isArray(response?.data)) {
+          setAvailableCategories(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to load categories', error);
+      }
+    };
+    loadCategories();
+  }, []);
 
   const acceptTypes = useMemo(() => '.jpg,.jpeg,.png,.webp', []);
 
@@ -95,7 +110,7 @@ export function AdminProductForm() {
             description: product.description || '',
             type: (product.type || 'photo') as ProductType,
             orientation: (product.orientation || 'landscape') as OrientationType,
-            categories: (product.categories || []).join(', '),
+            categories: product.categories || [],
             tags: (product.tags || []).join(', '),
             priceHD: String(product.prices?.HD ?? ''),
             priceFullHD: String(product.prices?.['Full HD'] ?? ''),
@@ -195,7 +210,7 @@ export function AdminProductForm() {
           description: form.description.trim(),
           type: form.type,
           orientation: form.orientation,
-          categories: form.categories,
+          categories: JSON.stringify(form.categories),
           tags: form.tags,
           prices: {
             HD: Number(form.priceHD),
@@ -222,7 +237,7 @@ export function AdminProductForm() {
         formData.append('description', form.description.trim());
         formData.append('type', form.type);
         formData.append('orientation', form.orientation);
-        formData.append('categories', form.categories);
+        form.categories.forEach(cat => formData.append('categories', cat));
         formData.append('tags', form.tags);
         formData.append('priceHD', form.priceHD);
         formData.append('priceFullHD', form.priceFullHD);
@@ -338,13 +353,40 @@ export function AdminProductForm() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="categories">Categories (comma separated)</Label>
-              <Input
-                id="categories"
-                placeholder="nature, wildlife"
-                value={form.categories}
-                onChange={(e) => handleChange('categories', e.target.value)}
-              />
+              <Label className="mb-3 block">Categories</Label>
+              <div className="flex flex-wrap gap-2">
+                {availableCategories.length === 0 ? (
+                  <span className="text-sm text-gray-500">Loading categories...</span>
+                ) : (
+                  availableCategories.map((cat) => {
+                    const selectedList = [...form.categories];
+                    const isSelected = selectedList.includes(cat.slug);
+                    
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            const newSelected = selectedList.filter(s => s !== cat.slug);
+                            handleChange('categories', newSelected);
+                          } else {
+                            selectedList.push(cat.slug);
+                            handleChange('categories', selectedList);
+                          }
+                        }}
+                        className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
+                          isSelected 
+                            ? 'bg-blue-600 text-white border-blue-600' 
+                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {cat.name}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
             </div>
             <div>
               <Label htmlFor="tags">Tags (comma separated)</Label>

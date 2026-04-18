@@ -13,12 +13,26 @@ router.get('/', async (req, res, next) => {
 
     const categories = await prisma.category.findMany({ where });
 
+    const categoriesWithCount = await Promise.all(
+      categories.map(async (cat) => {
+        const count = await prisma.product.count({
+          where: {
+            categories: {
+              has: cat.slug,
+            },
+          },
+        });
+        return {
+          ...cat,
+          productCount: count,
+          status: cat.status.toLowerCase(),
+        };
+      })
+    );
+
     res.json({
       success: true,
-      data: categories.map((cat) => ({
-        ...cat,
-        status: cat.status.toLowerCase(),
-      })),
+      data: categoriesWithCount,
     });
   } catch (error) {
     next(error);

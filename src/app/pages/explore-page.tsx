@@ -47,6 +47,17 @@ export function ExplorePage() {
     loadCategories();
   }, []);
 
+  // Initialize selected category from URL parameters
+  useEffect(() => {
+    const categoryParam = searchParams.get('category');
+    if (categoryParam) {
+      setSelectedCategories(prev => {
+        if (!prev.includes(categoryParam)) return [...prev, categoryParam];
+        return prev;
+      });
+    }
+  }, [searchParams]);
+
   // Load products
   useEffect(() => {
     const loadProducts = async () => {
@@ -62,10 +73,8 @@ export function ExplorePage() {
         if (searchQuery) params.search = searchQuery;
 
         // Multi-select Category
-        const categoryParam = searchParams.get('category');
-        const activeCategories = categoryParam ? [categoryParam] : selectedCategories;
-        if (activeCategories.length > 0) {
-          params.category = activeCategories.join(',');
+        if (selectedCategories.length > 0) {
+          params.category = selectedCategories.join(',');
         }
 
         // Multi-select Type
