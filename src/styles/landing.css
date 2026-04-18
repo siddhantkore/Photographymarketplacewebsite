@@ -241,7 +241,9 @@
 
 /* ── Stats Section ── */
 .lps-stats {
-  background: #f0f0f0;
+  background: rgba(240, 240, 240, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   padding: 3.5rem 1.5rem;
 }
 
@@ -350,10 +352,12 @@
 }
 
 .lps-service-card {
-  background: white;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-radius: 1.25rem;
   padding: 2rem;
-  border: 1px solid #e0e0e0;
+  border: 1px solid rgba(224, 224, 224, 0.6);
   transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
   position: relative;
   overflow: hidden;
@@ -409,11 +413,11 @@
 
 /* ── Why Choose Us ── */
 .lps-why {
-  background: #f0f0f0;
+  background: transparent;
 }
 
 .lps-why .lps-section-subtitle {
-  color: #555555;
+  color: #000000;
 }
 
 .lps-why-grid {
@@ -427,15 +431,42 @@
 
 .lps-why-item {
   padding: 1.75rem;
-  background: #ffffff;
-  border: 1px solid #e8e8e8;
+  background: rgba(255, 255, 255, 0.80);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(232, 232, 232, 0.6);
   border-radius: 1rem;
-  transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
+  transition: background 0.3s, transform 0.3s, box-shadow 0.3s, border-left-color 0.3s;
+  border-left: 4px solid transparent;
 }
 .lps-why-item:hover {
   background: #ffffff;
   transform: translateY(-4px);
   box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+}
+
+.lps-why-item:nth-child(1) {
+  border-left-color: #6366f1;
+}
+
+.lps-why-item:nth-child(2) {
+  border-left-color: #0ea5e9;
+}
+
+.lps-why-item:nth-child(3) {
+  border-left-color: #10b981;
+}
+
+.lps-why-item:nth-child(4) {
+  border-left-color: #f59e0b;
+}
+
+.lps-why-item:nth-child(5) {
+  border-left-color: #8b5cf6;
+}
+
+.lps-why-item:nth-child(6) {
+  border-left-color: #ec4899;
 }
 
 .lps-why-icon {
@@ -446,8 +477,34 @@
   align-items: center;
   justify-content: center;
   margin-bottom: 1rem;
-  background: #ffffff;
+  background: rgba(currentColor, 0.1);
+  color: inherit;
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.lps-why-item:nth-child(1) .lps-why-icon {
+  background: #6366f1 url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="rgba(99,102,241,0.15)" width="100" height="100"/></svg>');
+  background-color: rgba(99, 102, 241, 0.15);
+}
+
+.lps-why-item:nth-child(2) .lps-why-icon {
+  background-color: rgba(14, 165, 233, 0.15);
+}
+
+.lps-why-item:nth-child(3) .lps-why-icon {
+  background-color: rgba(16, 185, 129, 0.15);
+}
+
+.lps-why-item:nth-child(4) .lps-why-icon {
+  background-color: rgba(245, 158, 11, 0.15);
+}
+
+.lps-why-item:nth-child(5) .lps-why-icon {
+  background-color: rgba(139, 92, 246, 0.15);
+}
+
+.lps-why-item:nth-child(6) .lps-why-icon {
+  background-color: rgba(236, 72, 153, 0.15);
 }
 
 .lps-why-title {
@@ -478,8 +535,10 @@
 }
 
 .lps-testimonial-card {
-  background: #fafafa;
-  border: 1px solid #f0f0f0;
+  background: rgba(250, 250, 250, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(240, 240, 240, 0.6);
   border-radius: 1.25rem;
   padding: 2rem;
   position: relative;
@@ -538,11 +597,13 @@
 
 /* ── CTA Banner ── */
 .lps-cta {
-  background: #f0f0f0;
+  background: rgba(240, 240, 240, 0.50);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   padding: 5rem 1.5rem;
   text-align: center;
   position: relative;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid rgba(224, 224, 224, 0.6);
 }
 
 .lps-cta-title {

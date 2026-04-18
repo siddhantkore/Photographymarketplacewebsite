@@ -180,3 +180,47 @@
     line-height: 1.5;
   }
 }
+
+/* ── Frosted-glass card harmony ──
+   Makes white surfaces blend with the animated background
+   instead of creating harsh opaque rectangles.
+   Scoped to main content area only (excludes header, footer, admin). */
+
+main .bg-white {
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+main .bg-gray-50 {
+  background: rgba(249, 250, 251, 0.70) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Shadcn Card component — same treatment */
+main [data-slot="card"] {
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Keep dialogs, popovers, and dropdowns fully opaque */
+[data-radix-popper-content-wrapper] .bg-white,
+[role="dialog"] .bg-white,
+[data-slot="dialog-content"],
+[data-slot="popover-content"],
+[data-slot="select-content"],
+[data-slot="sheet-content"] {
+  background: rgba(255, 255, 255, 0.97) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* White section bands (e.g. services "Get In Touch") — translucent */
+main > .bg-white,
+main > div > .bg-white {
+  background: rgba(255, 255, 255, 0.70) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}

@@ -412,11 +412,11 @@ export function HomePage() {
             <h2
               id="why-heading"
               className="lps-section-title"
-              style={{ fontFamily: "'Playfair Display', serif", color: 'white' }}
+              style={{ fontFamily: "'Playfair Display', serif", color: 'black' }}
             >
               Excellence in Every<br />Frame We Deliver
             </h2>
-            <p className="lps-section-subtitle" style={{ color: 'rgba(255,255,255,0.6)' }}>
+            <p className="lps-section-subtitle" style={{ color: 'black' }}>
               We combine technical expertise with artistic vision to create photographs that
               resonate, inspire, and stand the test of time.
             </p>
