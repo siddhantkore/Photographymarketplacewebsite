@@ -229,7 +229,7 @@ export function ExplorePage() {
   // Insert ads into product grid every 6 products
   const renderProductGrid = () => {
     const items: JSX.Element[] = [];
-    
+
     filteredProducts.forEach((product, index) => {
       // Add inline ad after every 6th product
       if (index > 0 && index % 6 === 0) {
@@ -318,7 +318,7 @@ export function ExplorePage() {
               </div>
             ) : filteredProducts.length > 0 ? (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-2 md:gap-3">
                   {renderProductGrid()}
                 </div>
 
@@ -355,10 +355,7 @@ export function ExplorePage() {
             )}
           </main>
 
-          {/* Google Side Rail Ad */}
-          <aside className="hidden xl:block w-40 flex-shrink-0">
-            <SideRailAd />
-          </aside>
+          <SideRailAd />
         </div>
       </div>
     </div>

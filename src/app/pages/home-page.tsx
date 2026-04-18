@@ -462,7 +462,7 @@ export function HomePage() {
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                 {latestProducts.map((product, i) => (
                   <div key={product.id} className="lps-reveal" style={{ transitionDelay: `${i * 0.08}s` }}>
                     <ProductCard product={product} />
@@ -496,7 +496,7 @@ export function HomePage() {
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                 {popularProducts.map((product, i) => (
                   <div key={product.id} className="lps-reveal" style={{ transitionDelay: `${i * 0.08}s` }}>
                     <ProductCard product={product} />

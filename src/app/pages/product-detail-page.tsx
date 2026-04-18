@@ -72,14 +72,14 @@ export function ProductDetailPage() {
         if (currentProduct.categories.length > 0) {
           const relatedResponse: any = await productsApi.getAll({
             category: currentProduct.categories[0],
-            limit: 8,
+            limit: 12,
             page: 1,
           });
 
           if (relatedResponse?.success && relatedResponse?.data?.products) {
             const related = relatedResponse.data.products
               .filter((item: Product) => item.id !== currentProduct.id)
-              .slice(0, 3);
+              .slice(0, 6);
             setRelatedProducts(related);
           } else {
             setRelatedProducts([]);
@@ -307,8 +307,8 @@ export function ProductDetailPage() {
                     <div
                       key={resolution}
                       className={`flex items-center justify-between p-4 rounded-lg border-2 transition-colors cursor-pointer ${selectedResolution === resolution
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
                         }`}
                       onClick={() => setSelectedResolution(resolution)}
                     >
@@ -397,7 +397,7 @@ export function ProductDetailPage() {
         {relatedProducts.length > 0 && (
           <section>
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Suggested for you</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-2 md:gap-3">
               {relatedProducts.map((item) => (
                 <ProductCard key={item.id} product={item} />
               ))}

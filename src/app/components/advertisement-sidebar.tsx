@@ -66,7 +66,7 @@ export function AdvertisementSidebar({ positions = ['home-sidebar', 'explore'] }
   }
 
   return (
-    <div className="sticky top-20 space-y-4">
+    <div className="sticky top-20 space-y-4 w-full lg:w-72 flex-shrink-0">
       <h3 className="text-sm font-semibold text-gray-700 mb-3">Promotions</h3>
       {visibleAds.map((ad) => (
         <a

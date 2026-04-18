@@ -117,12 +117,11 @@ export function SideRailAd() {
       .catch(console.error);
   }, []);
 
-  // Fall back to Google AdSense if no API ads available
   if (!shouldShowSideRail && ads.length === 0) return null;
 
   if (ads.length > 0) {
     return (
-      <div className="sticky top-20 hidden xl:block">
+      <div className="sticky top-20 hidden xl:block w-40 flex-shrink-0">
         {ads.map((ad) => (
           <a
             key={ad.id}

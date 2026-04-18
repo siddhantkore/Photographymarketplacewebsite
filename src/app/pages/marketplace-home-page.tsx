@@ -74,17 +74,17 @@ export function MarketplaceHomePage() {
   }, []);
 
   const heroFeaturedProducts = useMemo(() => featuredProducts.slice(0, 3), [featuredProducts]);
-  const latestProducts = useMemo(() => products.slice(0, 4), [products]);
+  const latestProducts = useMemo(() => products.slice(0, 5), [products]);
   const popularProducts = useMemo(
-    () => [...products].sort((a, b) => b.popularity - a.popularity).slice(0, 4),
+    () => [...products].sort((a, b) => b.popularity - a.popularity).slice(0, 5),
     [products]
   );
 
   return (
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <div className="lg:col-span-3 space-y-12">
+        <div className="flex flex-col lg:flex-row gap-8">
+          <div className="flex-1 space-y-12 min-w-0">
             {/* Hero Featured Carousel */}
             <section>
               {heroFeaturedProducts.length > 0 ? (
@@ -198,7 +198,7 @@ export function MarketplaceHomePage() {
               {loading ? (
                 <div className="text-gray-600">Loading latest uploads...</div>
               ) : latestProducts.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                   {latestProducts.map((product) => (
                     <ProductCard key={product.id} product={product} />
                   ))}
@@ -227,7 +227,7 @@ export function MarketplaceHomePage() {
               {loading ? (
                 <div className="text-gray-600">Loading popular products...</div>
               ) : popularProducts.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                   {popularProducts.map((product) => (
                     <ProductCard key={product.id} product={product} />
                   ))}
@@ -241,9 +241,7 @@ export function MarketplaceHomePage() {
           </div>
 
           {/* Ad Sidebar */}
-          <div className="lg:col-span-1">
-            <AdvertisementSidebar />
-          </div>
+          <AdvertisementSidebar />
         </div>
       </div>
     </div>
