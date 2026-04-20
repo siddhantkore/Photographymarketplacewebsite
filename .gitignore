@@ -13,3 +13,14 @@ coverage/
 *.log
 
 docs/
+
+
+minio-original
+minio-preview
+
+upload.js
+update-db.js
+
+
+dump.sql
+mapping.json
