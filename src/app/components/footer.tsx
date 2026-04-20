@@ -9,9 +9,7 @@ export function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">LPS</span>
-              </div>
+              <img src="/logo.png" alt="Like Photo Studio logo" className="w-8 h-8 object-contain" />
               <span className="text-xl font-bold text-white">Like Photo Studio</span>
             </div>
             <p className="text-sm text-gray-400">

@@ -88,9 +88,11 @@ export function CartPage() {
                         className="w-full h-full object-cover"
                       />
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="text-white/20 text-lg font-bold transform rotate-[-30deg] select-none">
-                          LPS
-                        </div>
+                        <img
+                          src="/logo.png"
+                          alt="Like Photo Studio logo watermark"
+                          className="w-12 h-12 object-contain opacity-20 rotate-[-30deg] select-none"
+                        />
                       </div>
                     </div>
                   </Link>
