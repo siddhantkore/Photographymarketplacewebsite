@@ -19,7 +19,7 @@
     "ecommerce"
   ],
   "author": "",
-  "license": "MIT",
+  "license": "Private",
   "dependencies": {
     "@prisma/client": "^5.9.1",
     "aws-sdk": "^2.1547.0",
