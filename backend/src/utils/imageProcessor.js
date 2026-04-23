@@ -256,8 +256,8 @@ export async function generateWatermarkedPreview(imageBuffer, options = {}) {
  * Full marketplace processing pipeline for a single image.
  * - Validate
  * - Generate original variants (HD/FULL_HD/FOUR_K)
- * - Apply watermark to each downloadable resolution
- * - Generate preview variants by re-encoding the watermarked outputs
+ * - Apply watermark only to preview variants
+ * - Keep downloadable originals watermark-free
  */
 export async function processImageForMarketplace(imageBuffer, config = {}) {
   const {
@@ -288,17 +288,16 @@ export async function processImageForMarketplace(imageBuffer, config = {}) {
   const resizedFullHD = await resizeToPreset(imageBuffer, RESOLUTION_PRESETS.FULL_HD, originalQuality);
   const resizedHD = await resizeToPreset(imageBuffer, RESOLUTION_PRESETS.HD, originalQuality);
 
-  // Watermark is applied on each downloadable resolution to keep preview and download visuals consistent.
-  const [watermarkedOriginal4K, watermarkedOriginalFullHD, watermarkedOriginalHD] = await Promise.all([
+  const [watermarkedPreview4K, watermarkedPreviewFullHD, watermarkedPreviewHD] = await Promise.all([
     applyWatermark(resized4K, watermark),
     applyWatermark(resizedFullHD, watermark),
     applyWatermark(resizedHD, watermark),
   ]);
 
   const [preview4K, previewFullHD, previewHD] = await Promise.all([
-    reencodeJpeg(watermarkedOriginal4K, previewQuality),
-    reencodeJpeg(watermarkedOriginalFullHD, previewQuality),
-    reencodeJpeg(watermarkedOriginalHD, previewQuality),
+    reencodeJpeg(watermarkedPreview4K, previewQuality),
+    reencodeJpeg(watermarkedPreviewFullHD, previewQuality),
+    reencodeJpeg(watermarkedPreviewHD, previewQuality),
   ]);
 
   return {
@@ -309,9 +308,9 @@ export async function processImageForMarketplace(imageBuffer, config = {}) {
       FOUR_K: preview4K,
     },
     originals: {
-      HD: watermarkedOriginalHD,
-      FULL_HD: watermarkedOriginalFullHD,
-      FOUR_K: watermarkedOriginal4K,
+      HD: resizedHD,
+      FULL_HD: resizedFullHD,
+      FOUR_K: resized4K,
     },
   };
 }

@@ -34,6 +34,10 @@ function parseProvider(provider) {
   }
 
   const normalized = provider.trim().toLowerCase();
+  if (normalized === STORAGE_PROVIDERS.CLOUDINARY) {
+    return STORAGE_PROVIDERS.CLOUDINARY;
+  }
+
   if (normalized === STORAGE_PROVIDERS.R2) {
     return STORAGE_PROVIDERS.R2;
   }
@@ -52,13 +56,44 @@ function requireValue(value, fieldName) {
   return value;
 }
 
+function parseCloudinaryUrl(cloudinaryUrl) {
+  if (!cloudinaryUrl) {
+    return {};
+  }
+
+  try {
+    const parsed = new URL(cloudinaryUrl);
+    const cloudName = parsed.hostname;
+    const apiKey = decodeURIComponent(parsed.username || '');
+    const apiSecret = decodeURIComponent(parsed.password || '');
+
+    return {
+      cloudName,
+      apiKey,
+      apiSecret,
+    };
+  } catch {
+    return {};
+  }
+}
+
 export function loadStorageConfig(env = process.env) {
   const provider = parseProvider(env.STORAGE_PROVIDER);
 
   const previewBucketName =
-    env.PREVIEW_BUCKET_NAME || env.MINIO_PREVIEW_BUCKET || env.AWS_S3_BUCKET;
+    env.PREVIEW_BUCKET_NAME ||
+    env.MINIO_PREVIEW_BUCKET ||
+    env.AWS_S3_BUCKET ||
+    (provider === STORAGE_PROVIDERS.CLOUDINARY
+      ? env.CLOUDINARY_PREVIEW_FOLDER || 'preview'
+      : '');
   const originalBucketName =
-    env.ORIGINAL_BUCKET_NAME || env.MINIO_ORIGINAL_BUCKET || env.AWS_S3_BUCKET;
+    env.ORIGINAL_BUCKET_NAME ||
+    env.MINIO_ORIGINAL_BUCKET ||
+    env.AWS_S3_BUCKET ||
+    (provider === STORAGE_PROVIDERS.CLOUDINARY
+      ? env.CLOUDINARY_ORIGINAL_FOLDER || 'original'
+      : '');
 
   requireValue(previewBucketName, 'PREVIEW_BUCKET_NAME');
   requireValue(originalBucketName, 'ORIGINAL_BUCKET_NAME');
@@ -75,6 +110,31 @@ export function loadStorageConfig(env = process.env) {
     },
     defaultSignedUrlExpiry: toInteger(env.STORAGE_SIGNED_URL_EXPIRY, DEFAULT_SIGNED_URL_EXPIRY),
   };
+
+  if (provider === STORAGE_PROVIDERS.CLOUDINARY) {
+    const urlConfig = parseCloudinaryUrl(env.CLOUDINARY_URL);
+    const cloudName = requireValue(
+      env.CLOUDINARY_CLOUD_NAME || urlConfig.cloudName,
+      'CLOUDINARY_CLOUD_NAME'
+    );
+    const apiKey = requireValue(env.CLOUDINARY_API_KEY || urlConfig.apiKey, 'CLOUDINARY_API_KEY');
+    const apiSecret = requireValue(
+      env.CLOUDINARY_API_SECRET || urlConfig.apiSecret,
+      'CLOUDINARY_API_SECRET'
+    );
+
+    return {
+      ...baseConfig,
+      providerConfig: {
+        cloudName,
+        apiKey,
+        apiSecret,
+        secure: toBoolean(env.CLOUDINARY_SECURE, true),
+        privateCdn: toBoolean(env.CLOUDINARY_PRIVATE_CDN, false),
+        secureDistribution: env.CLOUDINARY_SECURE_DISTRIBUTION || '',
+      },
+    };
+  }
 
   if (provider === STORAGE_PROVIDERS.R2) {
     const accountId = env.R2_ACCOUNT_ID || '';

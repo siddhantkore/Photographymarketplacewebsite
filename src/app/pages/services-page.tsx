@@ -168,7 +168,7 @@ export function ServicesPage() {
               </Button>
               {siteConfig?.phoneNumber && (
                 <a href={`tel:${siteConfig.phoneNumber}`}>
-                  <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
+                  <Button size="lg" variant="outline" className="border-white text-zinc-600 hover:bg-white/10">
                     <Phone className="w-4 h-4 mr-2" />
                     {siteConfig.phoneNumber}
                   </Button>

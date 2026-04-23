@@ -3,10 +3,15 @@ import { loadStorageConfig } from './storageConfig.js';
 import S3StorageProvider from './providers/s3StorageProvider.js';
 import R2StorageProvider from './providers/r2StorageProvider.js';
 import MinioStorageProvider from './providers/minioStorageProvider.js';
+import CloudinaryStorageProvider from './providers/cloudinaryStorageProvider.js';
 
 let providerInstance;
 
 export function createStorageProvider(config = loadStorageConfig()) {
+  if (config.provider === STORAGE_PROVIDERS.CLOUDINARY) {
+    return new CloudinaryStorageProvider(config);
+  }
+
   if (config.provider === STORAGE_PROVIDERS.MINIO) {
     return new MinioStorageProvider(config);
   }

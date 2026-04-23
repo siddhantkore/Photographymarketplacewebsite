@@ -129,7 +129,8 @@ export const register = async (req, res, next) => {
         email: normalizedEmail,
         password: hashedPassword,
         role: 'USER',
-        isEmailVerified: false,
+        // Temporary bypass while SMTP delivery is disabled.
+        isEmailVerified: true,
       },
       select: {
         id: true,
@@ -141,23 +142,12 @@ export const register = async (req, res, next) => {
       },
     });
 
-    const otpCode = await createOtpRecord({
-      email: normalizedEmail,
-      purpose: 'EMAIL_VERIFICATION',
-    });
-
-    await sendOtpEmail({
-      email: normalizedEmail,
-      otp: otpCode,
-      purpose: 'EMAIL_VERIFICATION',
-    });
-
     res.status(201).json({
       success: true,
-      message: 'Registration successful. Verify your email with OTP to continue.',
+      message: 'Registration successful.',
       data: {
         user,
-        requiresEmailVerification: true,
+        requiresEmailVerification: false,
       },
     });
   } catch (error) {
@@ -280,22 +270,16 @@ export const login = async (req, res, next) => {
       });
     }
 
-    if (!user.isEmailVerified) {
-      return res.status(403).json({
-        success: false,
-        message: 'Email is not verified. Please verify with OTP before login.',
-        requiresEmailVerification: true,
-      });
-    }
-
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id: user.id },
-      data: { lastLoginAt: new Date() },
+      data: {
+        lastLoginAt: new Date(),
+        ...(user.isEmailVerified ? {} : { isEmailVerified: true }),
+      },
     });
 
     const tokens = await createAndStoreSessionTokens(user.id, user.role);
-
-    const { password: _, ...userWithoutPassword } = user;
+    const { password: _, ...userWithoutPassword } = updatedUser;
 
     res.json({
       success: true,

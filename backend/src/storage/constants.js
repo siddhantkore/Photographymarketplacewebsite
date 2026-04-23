@@ -2,6 +2,7 @@ export const STORAGE_PROVIDERS = Object.freeze({
   MINIO: 'minio',
   S3: 's3',
   R2: 'r2',
+  CLOUDINARY: 'cloudinary',
 });
 
 export const STORAGE_BUCKETS = Object.freeze({
