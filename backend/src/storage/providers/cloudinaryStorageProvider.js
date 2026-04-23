@@ -65,6 +65,28 @@ function getResourceType(file, objectPath) {
   return getResourceTypeFromPath(objectPath);
 }
 
+function splitPublicIdAndFormat(publicId, resourceType) {
+  if (resourceType !== 'image' && resourceType !== 'video') {
+    return {
+      publicId,
+      format: undefined,
+    };
+  }
+
+  const extension = path.extname(publicId || '').replace(/^\./, '').toLowerCase();
+  if (!extension) {
+    return {
+      publicId,
+      format: undefined,
+    };
+  }
+
+  return {
+    publicId,
+    format: extension,
+  };
+}
+
 export default class CloudinaryStorageProvider extends BaseStorageProvider {
   constructor(config) {
     super(config);
@@ -192,6 +214,7 @@ export default class CloudinaryStorageProvider extends BaseStorageProvider {
     );
     const publicId = this.getPublicId(objectPath, bucketType);
     const resourceType = getResourceTypeFromPath(objectPath);
+    const delivery = splitPublicIdAndFormat(publicId, resourceType);
 
     if (accessType === ACCESS_TYPES.PUBLIC && bucketType !== STORAGE_BUCKETS.ORIGINAL) {
       return this.client.url(publicId, {
@@ -199,6 +222,7 @@ export default class CloudinaryStorageProvider extends BaseStorageProvider {
         type: this.getDeliveryType(bucketType, accessType),
         secure: this.secure,
         sign_url: false,
+        format: delivery.format,
       });
     }
 
@@ -207,7 +231,7 @@ export default class CloudinaryStorageProvider extends BaseStorageProvider {
       this.getDefaultSignedUrlExpiry()
     );
 
-    return this.client.utils.private_download_url(publicId, undefined, {
+    return this.client.utils.private_download_url(delivery.publicId, delivery.format, {
       resource_type: resourceType,
       type: this.getDeliveryType(bucketType, ACCESS_TYPES.SIGNED),
       expires_at: expiresAt,

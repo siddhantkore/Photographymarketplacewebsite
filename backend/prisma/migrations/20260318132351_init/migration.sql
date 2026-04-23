@@ -1,23 +1,58 @@
 -- CreateEnum
-CREATE TYPE "UserRole" AS ENUM ('USER', 'ADMIN');
+DO $$
+BEGIN
+    CREATE TYPE "UserRole" AS ENUM ('USER', 'ADMIN');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "ProductType" AS ENUM ('PHOTO', 'BUNDLE', 'TYPOGRAPHY', 'POSTER', 'BANNER');
+DO $$
+BEGIN
+    CREATE TYPE "ProductType" AS ENUM ('PHOTO', 'BUNDLE', 'TYPOGRAPHY', 'POSTER', 'BANNER');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "Resolution" AS ENUM ('HD', 'FULL_HD', 'FOUR_K');
+DO $$
+BEGIN
+    CREATE TYPE "Resolution" AS ENUM ('HD', 'FULL_HD', 'FOUR_K');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "Orientation" AS ENUM ('PORTRAIT', 'LANDSCAPE', 'SQUARE');
+DO $$
+BEGIN
+    CREATE TYPE "Orientation" AS ENUM ('PORTRAIT', 'LANDSCAPE', 'SQUARE');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "OrderStatus" AS ENUM ('PENDING', 'COMPLETED', 'FAILED');
+DO $$
+BEGIN
+    CREATE TYPE "OrderStatus" AS ENUM ('PENDING', 'COMPLETED', 'FAILED');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "Status" AS ENUM ('ACTIVE', 'INACTIVE');
+DO $$
+BEGIN
+    CREATE TYPE "Status" AS ENUM ('ACTIVE', 'INACTIVE');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "AdPosition" AS ENUM ('HOME_SIDEBAR', 'EXPLORE', 'BLOG', 'PRODUCT_GRID', 'SIDE_RAIL', 'ANCHOR', 'VIGNETTE');
+DO $$
+BEGIN
+    CREATE TYPE "AdPosition" AS ENUM ('HOME_SIDEBAR', 'EXPLORE', 'BLOG', 'PRODUCT_GRID', 'SIDE_RAIL', 'ANCHOR', 'VIGNETTE');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- CreateTable
 CREATE TABLE "User" (

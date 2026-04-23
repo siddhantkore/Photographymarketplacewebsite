@@ -220,6 +220,26 @@ export const createOrder = async (req, res, next) => {
       });
     }
 
+    const archivedItems = cartItems.filter((item) => item.product.status !== 'ACTIVE');
+    if (archivedItems.length > 0) {
+      const archivedTitles = [...new Set(archivedItems.map((item) => item.product.title))];
+
+      return res.status(409).json({
+        success: false,
+        message:
+          archivedTitles.length === 1
+            ? `The product "${archivedTitles[0]}" has been archived and can no longer be purchased. Remove it from your cart to continue.`
+            : `Some products in your cart have been archived and can no longer be purchased. Remove them from your cart to continue.`,
+        data: {
+          archivedProducts: archivedItems.map((item) => ({
+            productId: item.productId,
+            title: item.product.title,
+            resolution: formatResolutionForDisplay(item.resolution),
+          })),
+        },
+      });
+    }
+
     const pricedItems = cartItems.map((item) => {
       const normalizedResolution = normalizeResolution(item.resolution);
       const mapping = resolutionFieldMap[normalizedResolution];

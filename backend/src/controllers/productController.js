@@ -211,7 +211,58 @@ async function transformProduct(product) {
     },
     featured: product.featured,
     status: product.status.toLowerCase(),
+    isArchived: product.status === 'INACTIVE',
+    availableForPurchase: product.status === 'ACTIVE',
     filesCount: product.filesCount,
+  };
+}
+
+async function getArchivedProductViewerAccess(productId, userId) {
+  if (!userId) {
+    return {
+      hasCompletedPurchase: false,
+      hasCartItem: false,
+      hasWishlistItem: false,
+      canView: false,
+    };
+  }
+
+  const [completedOrderItem, cartItem, wishlistItem] = await Promise.all([
+    prisma.orderItem.findFirst({
+      where: {
+        productId,
+        order: {
+          userId,
+          status: 'COMPLETED',
+        },
+      },
+      select: { id: true },
+    }),
+    prisma.cartItem.findFirst({
+      where: {
+        userId,
+        productId,
+      },
+      select: { id: true },
+    }),
+    prisma.wishlistItem.findFirst({
+      where: {
+        userId,
+        productId,
+      },
+      select: { id: true },
+    }),
+  ]);
+
+  const hasCompletedPurchase = Boolean(completedOrderItem);
+  const hasCartItem = Boolean(cartItem);
+  const hasWishlistItem = Boolean(wishlistItem);
+
+  return {
+    hasCompletedPurchase,
+    hasCartItem,
+    hasWishlistItem,
+    canView: hasCompletedPurchase || hasCartItem || hasWishlistItem,
   };
 }
 
@@ -343,14 +394,31 @@ export const getProductById = async (req, res, next) => {
       });
     }
 
+    const transformedProduct = await transformProduct(product);
+
     if (product.status === 'INACTIVE' && (!req.user || req.user.role !== 'ADMIN')) {
-      return res.status(404).json({
-        success: false,
-        message: 'Product not found',
+      const access = await getArchivedProductViewerAccess(product.id, req.user?.userId);
+
+      if (!access.canView) {
+        return res.status(404).json({
+          success: false,
+          message: 'Product not found',
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: 'This product has been archived and is no longer available for new purchases.',
+        data: {
+          ...transformedProduct,
+          archivedAccess: {
+            purchased: access.hasCompletedPurchase,
+            inCart: access.hasCartItem,
+            inWishlist: access.hasWishlistItem,
+          },
+        },
       });
     }
-
-    const transformedProduct = await transformProduct(product);
 
     res.json({
       success: true,
@@ -519,6 +587,10 @@ export const updateProduct = async (req, res, next) => {
       updateData.tags = parseStringArray(updateData.tags);
     }
 
+    if (updateData.status === 'INACTIVE') {
+      updateData.featured = false;
+    }
+
     const product = await prisma.product.update({
       where: { id },
       data: updateData,
@@ -540,13 +612,46 @@ export const deleteProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    await prisma.product.delete({
+    const existingProduct = await prisma.product.findUnique({
       where: { id },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        featured: true,
+      },
     });
+
+    if (!existingProduct) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found',
+      });
+    }
+
+    if (existingProduct.status !== 'INACTIVE' || existingProduct.featured) {
+      await prisma.product.update({
+        where: { id },
+        data: {
+          status: 'INACTIVE',
+          featured: false,
+        },
+      });
+    }
 
     res.json({
       success: true,
-      message: 'Product deleted successfully',
+      message:
+        existingProduct.status === 'INACTIVE' && existingProduct.featured === false
+          ? 'Product is already archived'
+          : 'Product archived successfully. It is no longer visible for new purchases.',
+      data: {
+        id: existingProduct.id,
+        title: existingProduct.title,
+        status: 'inactive',
+        featured: false,
+        archived: true,
+      },
     });
   } catch (error) {
     next(error);

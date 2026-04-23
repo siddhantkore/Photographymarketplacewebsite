@@ -34,6 +34,24 @@ const formatResolutionForDisplay = (resolution) => {
   return normalized.replace(/_/g, ' ');
 };
 
+function transformCartItem(item, previewImage) {
+  const isArchived = item.product.status !== 'ACTIVE';
+
+  return {
+    productId: item.productId,
+    title: item.product.title,
+    previewImage,
+    resolution: formatResolutionForDisplay(item.resolution),
+    price: item.price,
+    status: item.product.status.toLowerCase(),
+    isArchived,
+    availableForPurchase: !isArchived,
+    notice: isArchived
+      ? 'This product has been archived. It remains in your cart, but it can no longer be purchased.'
+      : null,
+  };
+}
+
 export const getCart = async (req, res, next) => {
   try {
     const cartItems = await prisma.cartItem.findMany({
@@ -44,13 +62,9 @@ export const getCart = async (req, res, next) => {
     });
 
     const transformedItems = await Promise.all(
-      cartItems.map(async (item) => ({
-        productId: item.productId,
-        title: item.product.title,
-        previewImage: await getPreviewAccessUrl(item.product.previewImageHD),
-        resolution: formatResolutionForDisplay(item.resolution),
-        price: item.price,
-      }))
+      cartItems.map(async (item) =>
+        transformCartItem(item, await getPreviewAccessUrl(item.product.previewImageHD))
+      )
     );
 
     const total = transformedItems.reduce((sum, item) => sum + item.price, 0);
@@ -85,14 +99,20 @@ export const addToCart = async (req, res, next) => {
     }
 
     if (product.status !== 'ACTIVE') {
-      return res.status(400).json({
+      return res.status(409).json({
         success: false,
-        message: 'This product is not available',
+        message: 'This product has been archived and can no longer be added to the cart.',
       });
     }
 
-    // Get price based on resolution
     const priceField = resolutionMapping[resolution];
+    if (!priceField) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid resolution selected',
+      });
+    }
+
     const price = product[priceField];
 
     // Convert resolution format
@@ -133,13 +153,9 @@ export const addToCart = async (req, res, next) => {
     });
 
     const transformedItems = await Promise.all(
-      cartItems.map(async (item) => ({
-        productId: item.productId,
-        title: item.product.title,
-        previewImage: await getPreviewAccessUrl(item.product.previewImageHD),
-        resolution: formatResolutionForDisplay(item.resolution),
-        price: item.price,
-      }))
+      cartItems.map(async (item) =>
+        transformCartItem(item, await getPreviewAccessUrl(item.product.previewImageHD))
+      )
     );
 
     const total = transformedItems.reduce((sum, item) => sum + item.price, 0);
@@ -180,13 +196,9 @@ export const removeFromCart = async (req, res, next) => {
     });
 
     const transformedItems = await Promise.all(
-      cartItems.map(async (item) => ({
-        productId: item.productId,
-        title: item.product.title,
-        previewImage: await getPreviewAccessUrl(item.product.previewImageHD),
-        resolution: formatResolutionForDisplay(item.resolution),
-        price: item.price,
-      }))
+      cartItems.map(async (item) =>
+        transformCartItem(item, await getPreviewAccessUrl(item.product.previewImageHD))
+      )
     );
 
     const total = transformedItems.reduce((sum, item) => sum + item.price, 0);

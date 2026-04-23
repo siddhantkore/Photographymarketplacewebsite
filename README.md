@@ -7,15 +7,15 @@ Full-stack marketplace for selling digital photography assets (photos, bundles, 
 - Frontend: React + TypeScript + Vite + Tailwind CSS
 - Backend: Node.js + Express + Prisma
 - Database: PostgreSQL
-- Storage: MinIO / AWS S3 / Cloudflare R2
+- Storage: Cloudinary / MinIO / AWS S3 / Cloudflare R2
 - Payments: Razorpay
 
 ## Prerequisites
 
 - Node.js 18+
 - npm
-- PostgreSQL 14+
-- Object storage (MinIO recommended for local)
+- PostgreSQL 14+ / Supabase Postgres
+- Object storage (Cloudinary or S3-compatible provider)
 
 ## Quick Start (Docker)
 
@@ -59,6 +59,7 @@ cp .env.example .env
 - `RAZORPAY_KEY_SECRET`
 - `PREVIEW_BUCKET_NAME`
 - `ORIGINAL_BUCKET_NAME`
+- For Cloudinary: `STORAGE_PROVIDER=cloudinary` and `CLOUDINARY_URL` or `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
 - For MinIO: `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`
 - For S3: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`
 - For R2: `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, and `R2_ACCOUNT_ID` or `R2_ENDPOINT`
@@ -66,10 +67,10 @@ cp .env.example .env
 4. Setup database:
 
 ```bash
-npm run prisma:generate
-npm run prisma:migrate
-npm run prisma:seed
+npm run prisma:setup
 ```
+
+For Supabase or any remote Postgres, prefer `prisma migrate deploy` via `npm run prisma:setup` instead of `prisma migrate dev`.
 
 5. Start backend:
 
@@ -110,6 +111,7 @@ Backend (`backend/`):
 - `npm run prisma:migrate`
 - `npm run prisma:migrate:deploy`
 - `npm run prisma:seed`
+- `npm run prisma:setup`
 
 ## API Spec
 

@@ -8,7 +8,7 @@ import prisma from '../config/database.js';
 /**
  * Get site configuration (public - limited fields)
  */
-export const getSiteConfig = async (req, res) => {
+export const getSiteConfig = async (req, res, next) => {
   try {
     let config = await prisma.siteConfig.findFirst();
 
@@ -36,18 +36,14 @@ export const getSiteConfig = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error fetching site config:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch site configuration',
-    });
+    next(error);
   }
 };
 
 /**
  * Get full site configuration (admin)
  */
-export const getFullSiteConfig = async (req, res) => {
+export const getFullSiteConfig = async (req, res, next) => {
   try {
     let config = await prisma.siteConfig.findFirst();
 
@@ -70,18 +66,14 @@ export const getFullSiteConfig = async (req, res) => {
       data: config,
     });
   } catch (error) {
-    console.error('Error fetching full site config:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch site configuration',
-    });
+    next(error);
   }
 };
 
 /**
  * Update site configuration (admin)
  */
-export const updateSiteConfig = async (req, res) => {
+export const updateSiteConfig = async (req, res, next) => {
   try {
     const {
       phoneNumber,
@@ -130,11 +122,7 @@ export const updateSiteConfig = async (req, res) => {
       data: updatedConfig,
     });
   } catch (error) {
-    console.error('Error updating site config:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update site configuration',
-    });
+    next(error);
   }
 };
 

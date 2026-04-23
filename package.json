@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "backend": "cd backend && npm run dev",
-    "setup": "npm install && cd backend && npm install && npm run prisma:generate && npm run prisma:migrate && npm run prisma:seed",
+    "setup": "npm install && cd backend && npm install && npm run prisma:setup",
     "docker:up": "docker-compose up --build",
     "docker:down": "docker-compose down"
   },

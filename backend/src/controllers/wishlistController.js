@@ -46,6 +46,12 @@ async function transformWishlistProduct(product) {
     },
     discountPercent,
     status: product.status.toLowerCase(),
+    isArchived: product.status !== 'ACTIVE',
+    availableForPurchase: product.status === 'ACTIVE',
+    notice:
+      product.status !== 'ACTIVE'
+        ? 'This product has been archived. It remains in your wishlist, but it can no longer be purchased.'
+        : null,
     filesCount: product.filesCount,
     featured: product.featured,
   };
@@ -96,10 +102,17 @@ export const addToWishlist = async (req, res, next) => {
       where: { id: productId },
     });
 
-    if (!product || product.status !== 'ACTIVE') {
+    if (!product) {
       return res.status(404).json({
         success: false,
         message: 'Product not available',
+      });
+    }
+
+    if (product.status !== 'ACTIVE') {
+      return res.status(409).json({
+        success: false,
+        message: 'This product has been archived and can no longer be added to the wishlist.',
       });
     }
 

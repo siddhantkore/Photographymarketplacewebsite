@@ -8,7 +8,7 @@ import prisma from '../config/database.js';
 /**
  * Get all active services (public)
  */
-export const getServices = async (req, res) => {
+export const getServices = async (req, res, next) => {
   try {
     const services = await prisma.service.findMany({
       where: { status: 'ACTIVE' },
@@ -20,18 +20,14 @@ export const getServices = async (req, res) => {
       data: services,
     });
   } catch (error) {
-    console.error('Error fetching services:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch services',
-    });
+    next(error);
   }
 };
 
 /**
  * Get all services (admin - includes inactive)
  */
-export const getAllServices = async (req, res) => {
+export const getAllServices = async (req, res, next) => {
   try {
     const services = await prisma.service.findMany({
       orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
@@ -42,18 +38,14 @@ export const getAllServices = async (req, res) => {
       data: services,
     });
   } catch (error) {
-    console.error('Error fetching all services:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch services',
-    });
+    next(error);
   }
 };
 
 /**
  * Get single service by ID
  */
-export const getServiceById = async (req, res) => {
+export const getServiceById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -73,18 +65,14 @@ export const getServiceById = async (req, res) => {
       data: service,
     });
   } catch (error) {
-    console.error('Error fetching service:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch service',
-    });
+    next(error);
   }
 };
 
 /**
  * Create new service (admin)
  */
-export const createService = async (req, res) => {
+export const createService = async (req, res, next) => {
   try {
     const { title, description, icon, price, features, image, status, order } = req.body;
 
@@ -115,18 +103,14 @@ export const createService = async (req, res) => {
       data: service,
     });
   } catch (error) {
-    console.error('Error creating service:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create service',
-    });
+    next(error);
   }
 };
 
 /**
  * Update service (admin)
  */
-export const updateService = async (req, res) => {
+export const updateService = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { title, description, icon, price, features, image, status, order } = req.body;
@@ -163,18 +147,14 @@ export const updateService = async (req, res) => {
       data: service,
     });
   } catch (error) {
-    console.error('Error updating service:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update service',
-    });
+    next(error);
   }
 };
 
 /**
  * Delete service (admin)
  */
-export const deleteService = async (req, res) => {
+export const deleteService = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -199,18 +179,14 @@ export const deleteService = async (req, res) => {
       message: 'Service deleted successfully',
     });
   } catch (error) {
-    console.error('Error deleting service:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete service',
-    });
+    next(error);
   }
 };
 
 /**
  * Reorder services (admin)
  */
-export const reorderServices = async (req, res) => {
+export const reorderServices = async (req, res, next) => {
   try {
     const { serviceOrders } = req.body; // Array of {id, order}
 
@@ -236,11 +212,7 @@ export const reorderServices = async (req, res) => {
       message: 'Services reordered successfully',
     });
   } catch (error) {
-    console.error('Error reordering services:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to reorder services',
-    });
+    next(error);
   }
 };
 

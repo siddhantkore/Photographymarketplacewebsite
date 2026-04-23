@@ -1,18 +1,78 @@
+function getPrismaErrorResponse(err) {
+  const prismaCode = err?.code;
+
+  if (prismaCode === 'P2002') {
+    return {
+      status: 409,
+      message: 'A record with this value already exists',
+    };
+  }
+
+  if (prismaCode === 'P2003') {
+    return {
+      status: 409,
+      message: 'This record cannot be deleted because it is still referenced by other data.',
+    };
+  }
+
+  if (prismaCode === 'P2021') {
+    return {
+      status: 503,
+      message: 'Database tables are not available right now. Please try again later.',
+    };
+  }
+
+  if (prismaCode === 'P2025') {
+    return {
+      status: 404,
+      message: 'Resource not found',
+    };
+  }
+
+  if (prismaCode === 'P1000') {
+    return {
+      status: 503,
+      message: 'Database authentication failed. Please try again later.',
+    };
+  }
+
+  if (prismaCode === 'P1001' || prismaCode === 'P1002' || prismaCode === 'P1017') {
+    return {
+      status: 503,
+      message: 'Database connection is temporarily unavailable. Please try again later.',
+    };
+  }
+
+  if (prismaCode === 'P1003') {
+    return {
+      status: 503,
+      message: 'Database is not ready yet. Please try again later.',
+    };
+  }
+
+  return null;
+}
+
 export const errorHandler = (err, req, res, next) => {
   console.error('Error:', err);
 
   // Prisma errors
-  if (err.code === 'P2002') {
-    return res.status(409).json({
+  const prismaError = getPrismaErrorResponse(err);
+  if (prismaError) {
+    return res.status(prismaError.status).json({
       success: false,
-      message: 'A record with this value already exists',
+      message: prismaError.message,
     });
   }
 
-  if (err.code === 'P2025') {
-    return res.status(404).json({
+  if (
+    err?.name === 'PrismaClientInitializationError' ||
+    err?.name === 'PrismaClientRustPanicError' ||
+    err?.name === 'PrismaClientUnknownRequestError'
+  ) {
+    return res.status(503).json({
       success: false,
-      message: 'Resource not found',
+      message: 'Database service is temporarily unavailable. Please try again later.',
     });
   }
 
@@ -55,9 +115,14 @@ export const errorHandler = (err, req, res, next) => {
   }
 
   // Default error
-  res.status(err.statusCode || 500).json({
+  const statusCode = err.statusCode || 500;
+
+  res.status(statusCode).json({
     success: false,
-    message: err.message || 'Internal server error',
+    message:
+      statusCode >= 500
+        ? 'Something went wrong. Please try again later.'
+        : err.message || 'Request failed',
   });
 };
 

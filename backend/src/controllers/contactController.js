@@ -8,7 +8,7 @@ import prisma from '../config/database.js';
 /**
  * Submit contact inquiry (public)
  */
-export const submitInquiry = async (req, res) => {
+export const submitInquiry = async (req, res, next) => {
   try {
     const { name, email, phone, subject, message, inquiryType, serviceId } = req.body;
 
@@ -56,18 +56,14 @@ export const submitInquiry = async (req, res) => {
       data: inquiry,
     });
   } catch (error) {
-    console.error('Error submitting inquiry:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to submit inquiry',
-    });
+    next(error);
   }
 };
 
 /**
  * Get all inquiries (admin)
  */
-export const getAllInquiries = async (req, res) => {
+export const getAllInquiries = async (req, res, next) => {
   try {
     const {
       status,
@@ -128,18 +124,14 @@ export const getAllInquiries = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error fetching inquiries:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch inquiries',
-    });
+    next(error);
   }
 };
 
 /**
  * Get inquiry by ID (admin)
  */
-export const getInquiryById = async (req, res) => {
+export const getInquiryById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -167,18 +159,14 @@ export const getInquiryById = async (req, res) => {
       data: inquiry,
     });
   } catch (error) {
-    console.error('Error fetching inquiry:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch inquiry',
-    });
+    next(error);
   }
 };
 
 /**
  * Update inquiry status (admin)
  */
-export const updateInquiryStatus = async (req, res) => {
+export const updateInquiryStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { status, adminTag } = req.body;
@@ -216,18 +204,14 @@ export const updateInquiryStatus = async (req, res) => {
       data: inquiry,
     });
   } catch (error) {
-    console.error('Error updating inquiry status:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update inquiry status',
-    });
+    next(error);
   }
 };
 
 /**
  * Delete inquiry (admin)
  */
-export const deleteInquiry = async (req, res) => {
+export const deleteInquiry = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -240,18 +224,14 @@ export const deleteInquiry = async (req, res) => {
       message: 'Inquiry deleted successfully',
     });
   } catch (error) {
-    console.error('Error deleting inquiry:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete inquiry',
-    });
+    next(error);
   }
 };
 
 /**
  * Get inquiry statistics (admin)
  */
-export const getInquiryStats = async (req, res) => {
+export const getInquiryStats = async (req, res, next) => {
   try {
     const [total, newCount, readCount, respondedCount, closedCount, byType, byTag] = await Promise.all([
       prisma.contactInquiry.count(),
@@ -296,11 +276,7 @@ export const getInquiryStats = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error fetching inquiry stats:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch inquiry statistics',
-    });
+    next(error);
   }
 };
 

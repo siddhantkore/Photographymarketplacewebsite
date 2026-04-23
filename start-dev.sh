@@ -54,12 +54,20 @@ if [[ -n "$DB_URL" ]]; then
     fi
 fi
 
+REMOTE_DB=false
+if [[ "$DB_HOST" != "localhost" && "$DB_HOST" != "127.0.0.1" ]]; then
+    REMOTE_DB=true
+fi
+
 echo "ℹ️  Using DB connection: ${DB_USER}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
 echo ""
 
 # Check if PostgreSQL is running
 echo "📊 Step 1: Checking PostgreSQL..."
-if command -v pg_isready &> /dev/null; then
+if [[ "$REMOTE_DB" == true ]]; then
+    echo "ℹ️  Remote PostgreSQL detected (${DB_HOST})"
+    echo "   Skipping local service checks and database creation steps"
+elif command -v pg_isready &> /dev/null; then
     if PGPASSWORD="$DB_PASS" pg_isready -q -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER"; then
         echo "✅ PostgreSQL is running"
     else
@@ -80,7 +88,10 @@ echo ""
 
 # Check if database exists
 echo "🗄️  Step 2: Checking database..."
-if command -v psql &> /dev/null; then
+if [[ "$REMOTE_DB" == true ]]; then
+    echo "ℹ️  Remote database detected"
+    echo "   Skipping local database existence checks"
+elif command -v psql &> /dev/null; then
     PSQL_BASE=(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER")
     if PGPASSWORD="$DB_PASS" "${PSQL_BASE[@]}" -d postgres -lqt | cut -d \| -f 1 | tr -d ' ' | grep -qw "$DB_NAME"; then
         echo "✅ Database '${DB_NAME}' exists"
@@ -137,9 +148,7 @@ if [ ! -d "backend/node_modules/.prisma" ]; then
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         cd backend
-        npm run prisma:generate
-        npm run prisma:migrate
-        npm run prisma:seed
+        npm run prisma:setup
         cd ..
         echo "✅ Prisma setup complete"
     else
@@ -148,6 +157,15 @@ if [ ! -d "backend/node_modules/.prisma" ]; then
     fi
 else
     echo "✅ Prisma is setup"
+    echo "🔄 Applying migrations and seeding backend..."
+    cd backend
+    if npm run prisma:setup; then
+        echo "✅ Prisma migrations and seed complete"
+    else
+        echo "❌ Prisma setup failed"
+        exit 1
+    fi
+    cd ..
 fi
 
 echo ""
