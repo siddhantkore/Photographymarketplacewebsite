@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
-
-const API_BASE_URL = (
-  import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'
-).replace(/\/+$/, '');
+import { API_BASE_URL } from '../services/api';
 
 const API_ORIGIN = (() => {
   try {

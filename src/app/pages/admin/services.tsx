@@ -27,7 +27,7 @@ import {
 import { Badge } from '../../components/ui/badge';
 import { toast } from 'sonner';
 import { Plus, Edit, Trash2, GripVertical } from 'lucide-react';
-import { getToken } from '../../services/api';
+import { API_BASE_URL, getToken } from '../../services/api';
 
 interface Service {
   id: string;
@@ -63,7 +63,7 @@ export function AdminServices() {
 
   const fetchServices = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/services/admin/all`, {
+      const response = await fetch(`${API_BASE_URL}/services/admin/all`, {
         headers: {
           Authorization: `Bearer ${getToken()}`,
         },
@@ -84,8 +84,8 @@ export function AdminServices() {
 
     const method = editingService ? 'PUT' : 'POST';
     const url = editingService
-      ? `${import.meta.env.VITE_API_URL}/services/${editingService.id}`
-      : `${import.meta.env.VITE_API_URL}/services`;
+      ? `${API_BASE_URL}/services/${editingService.id}`
+      : `${API_BASE_URL}/services`;
 
     try {
       const response = await fetch(url, {
@@ -117,7 +117,7 @@ export function AdminServices() {
     if (!confirm('Are you sure you want to delete this service?')) return;
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/services/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/services/${id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${getToken()}`,
