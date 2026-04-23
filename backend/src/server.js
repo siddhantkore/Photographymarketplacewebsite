@@ -9,10 +9,34 @@ import { getStorageProviderInfo } from './storage/index.js';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+function parseAllowedOrigins(env = process.env) {
+  const configuredOrigins = [
+    env.CLIENT_URL,
+    env.CLIENT_URLS,
+    'http://localhost:5173',
+    'https://likephotostudio.com',
+    'https://www.likephotostudio.com',
+  ]
+    .flatMap((value) => String(value || '').split(','))
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return [...new Set(configuredOrigins)];
+}
+
+const allowedOrigins = parseAllowedOrigins();
+
 // Middlewares
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -60,7 +84,7 @@ const storageInfo = getStorageProviderInfo();
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🌐 Client URL: ${process.env.CLIENT_URL || 'http://localhost:5173'}`);
+  console.log(`🌐 Allowed Origins: ${allowedOrigins.join(', ')}`);
   console.log(`🗂️ Storage Provider: ${storageInfo.provider}`);
   console.log(
     `🪣 Buckets: preview=${storageInfo.buckets.preview_bucket}, original=${storageInfo.buckets.original_bucket}`
